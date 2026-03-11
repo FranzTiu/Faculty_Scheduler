@@ -20,7 +20,7 @@ Reusable navigation bar component included on every authenticated page.
                 <div class="navbar-title-group">
                     <span class="navbar-title-main">IT Faculty</span>
                     <span class="navbar-title-sub">
-                        <span class="navy">COMLAB</span>
+                        <span class="navy">COMLABS</span>
                         <span class="gold"> Scheduler</span>
                     </span>
                 </div>
@@ -77,9 +77,7 @@ Reusable navigation bar component included on every authenticated page.
             <span onclick="toggleUserMenu()" class="navbar-dropdown-arrow mr-2">▼</span>
 
             {{-- New Logo on Right --}}
-            <img src="{{ asset('LNU_Logo.png') }}" 
-                 alt="LNU Logo" 
-                 class="w-10 h-10 object-contain hidden sm:block">
+            <img src="{{ asset('LNU_Logo.png') }}" alt="LNU Logo" class="w-10 h-10 object-contain hidden sm:block">
         </div>
 
         {{-- ═══ HAMBURGER BUTTON (mobile/tablet only) ═══ --}}
