@@ -16,13 +16,12 @@
 
     @if(auth()->check())
         <div id="dashboardPage"
-            class="dashboard-container w-full overflow-x-hidden flex flex-col min-h-screen bg-slate-50 pt-[60px]">
+            class="dashboard-container w-full overflow-x-hidden flex flex-col min-h-screen bg-slate-50 pt-[80px]">
             @include('components.navbar')
 
             @yield('hero')
 
-            <main id="mainContent"
-                class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 transition-all duration-300">
+            <main id="mainContent" class="flex-grow w-full px-4 py-4 md:py-8 transition-all duration-300">
                 @yield('content')
             </main>
         </div>

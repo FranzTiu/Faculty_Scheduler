@@ -13,18 +13,18 @@ Reusable navigation bar component included on every authenticated page.
 
         {{-- ═══ LEFT: Logo + Brand ═══ --}}
         <div class="navbar-left">
-            <a href="{{ route('dashboard') }}" class="navbar-brand">
+            <div class="navbar-brand">
                 <img src="{{ asset('LNU_Logo.png') }}"
                     onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 60 60\'><circle cx=\'30\' cy=\'30\' r=\'28\' fill=\'%231e1b4b\' stroke=\'%23fbbf24\' stroke-width=\'3\'/><text x=\'30\' y=\'35\' text-anchor=\'middle\' fill=\'white\' font-size=\'14\' font-family=\'serif\' font-weight=\'bold\'>LNU</text></svg>'"
                     alt="LNU Logo" class="navbar-logo">
                 <div class="navbar-title-group">
                     <span class="navbar-title-main">IT Faculty</span>
                     <span class="navbar-title-sub">
-                        <span class="navy">COMLABS</span>
+                        <span class="navy">ComLab</span>
                         <span class="gold"> Scheduler</span>
                     </span>
                 </div>
-            </a>
+            </div>
         </div>
 
         {{-- ═══ CENTER: Navigation Links (desktop) ═══ --}}
@@ -74,10 +74,7 @@ Reusable navigation bar component included on every authenticated page.
             </div>
 
             {{-- Dropdown arrow --}}
-            <span onclick="toggleUserMenu()" class="navbar-dropdown-arrow mr-2">▼</span>
-
-            {{-- New Logo on Right --}}
-            <img src="{{ asset('LNU_Logo.png') }}" alt="LNU Logo" class="w-10 h-10 object-contain hidden sm:block">
+            <span onclick="toggleUserMenu()" class="navbar-dropdown-arrow">▼</span>
         </div>
 
         {{-- ═══ HAMBURGER BUTTON (mobile/tablet only) ═══ --}}
@@ -95,14 +92,14 @@ Reusable navigation bar component included on every authenticated page.
 <aside id="mobileDrawer" class="mobile-drawer">
     {{-- Drawer Header --}}
     <div class="drawer-header">
-        <img src="{{ asset('assets/lnu-logo.png') }}"
+        <img src="{{ asset('LNU_Logo.png') }}"
             onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 60 60\'><circle cx=\'30\' cy=\'30\' r=\'28\' fill=\'%231e1b4b\' stroke=\'%23fbbf24\' stroke-width=\'3\'/><text x=\'30\' y=\'35\' text-anchor=\'middle\' fill=\'white\' font-size=\'14\' font-family=\'serif\' font-weight=\'bold\'>LNU</text></svg>'"
             alt="LNU Logo" class="drawer-logo">
         <div class="drawer-title-group">
             <span class="drawer-title-main">IT Faculty</span>
             <span class="drawer-title-sub">
-                <span style="color:#fff;">COMLAB</span>
-                <span style="color:#fbbf24;"> Scheduler</span>
+                <span class="navy">ComLab</span>
+                <span class="gold"> Scheduler</span>
             </span>
         </div>
         <button class="drawer-close-btn" onclick="closeMobileDrawer()" aria-label="Close menu">

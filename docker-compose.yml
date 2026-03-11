@@ -1,4 +1,8 @@
 services:
+  app:
+    volumes:
+      - .:/var/www/html:cached
+
   laravel-docker:
     container_name: it-faculty-comlab-scheduler
     build: .
@@ -33,3 +37,5 @@ services:
 
 volumes:
   mysql_data:
+
+
