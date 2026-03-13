@@ -1702,12 +1702,65 @@ async function saveNewRoom(event, editingId = null) {
 
 function handleFilterChange() {
     const comlabGrid = document.getElementById('comlabGrid');
+    const roomFilter = document.getElementById('roomFilter');
+    const customDropdown = document.getElementById('roomFilterDropdown');
+
+    // Toggle class for selected state styling
+    if (roomFilter && roomFilter.value !== 'all') {
+        roomFilter.classList.add('has-selection');
+        if (customDropdown) customDropdown.classList.add('has-selection');
+    } else if (roomFilter) {
+        roomFilter.classList.remove('has-selection');
+        if (customDropdown) customDropdown.classList.remove('has-selection');
+    }
+
     if (comlabGrid && comlabGrid.style.display !== 'none') {
         loadLabGrid();
     } else {
         loadTeacherGrid();
     }
 }
+
+// Custom Dropdown Logic
+function toggleCustomDropdown(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById('roomFilterDropdown');
+    dropdown.classList.toggle('open');
+}
+
+function selectCustomOption(value, text) {
+    const dropdown = document.getElementById('roomFilterDropdown');
+    const selectedText = document.getElementById('selectedRoomText');
+    const hiddenSelect = document.getElementById('roomFilter');
+
+    if (selectedText) selectedText.textContent = text;
+    if (hiddenSelect) {
+        hiddenSelect.value = value;
+        // Trigger the original filter change
+        handleFilterChange();
+    }
+
+    // Update selected class in options
+    const options = dropdown.querySelectorAll('.custom-option');
+    options.forEach(opt => {
+        if (opt.getAttribute('data-value') === value) {
+            opt.classList.add('selected');
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
+
+    // Close dropdown
+    if (dropdown) dropdown.classList.remove('open');
+}
+
+// Global click listener to close dropdown
+document.addEventListener('click', function (e) {
+    const dropdown = document.getElementById('roomFilterDropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
 
 // Teacher Grid Logic
 async function loadTeacherGrid() {
@@ -2117,16 +2170,33 @@ async function populateRoomDropdowns() {
         const rooms = await res.json();
 
         const roomFilter = document.getElementById('roomFilter');
+        const roomOptionsDiv = document.getElementById('roomDropdownOptions');
         const visualFilter = document.getElementById('scheduleVisualFilter');
 
         if (roomFilter) {
             const currentVal = roomFilter.value;
             roomFilter.innerHTML = '<option value="all">All Schedule</option>';
+
+            // For custom dropdown
+            let optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Schedule')">All Schedule</div>`;
+
             rooms.forEach(room => {
                 roomFilter.innerHTML += `<option value="${room.name}">${room.name}</option>`;
+                optionsHtml += `<div class="custom-option ${currentVal === room.name ? 'selected' : ''}" data-value="${room.name}" onclick="selectCustomOption('${room.name}', '${room.name}')">${room.name}</div>`;
             });
+
+            if (roomOptionsDiv) roomOptionsDiv.innerHTML = optionsHtml;
+
             roomFilter.value = currentVal;
             if (!roomFilter.value) roomFilter.value = 'all';
+
+            // Sync visual text if selection was existing
+            const selectedRoomText = document.getElementById('selectedRoomText');
+            if (selectedRoomText && roomFilter.value !== 'all') {
+                selectedRoomText.textContent = roomFilter.value;
+            } else if (selectedRoomText) {
+                selectedRoomText.textContent = 'All Schedule';
+            }
         }
 
         if (visualFilter) {

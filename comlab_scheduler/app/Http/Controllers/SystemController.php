@@ -40,7 +40,11 @@ class SystemController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(["success" => true]);
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(["success" => true]);
+        }
+
+        return redirect()->route('login');
     }
 
     // Rooms logic

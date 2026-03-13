@@ -2,7 +2,7 @@
 
 @section('hero')
     <section class="hero-banner relative w-full">
-        <div class="stat-cards-container flex flex-wrap justify-left w-[95%] md:w-[85%] bottom-[-80px] md:bottom-0">
+        <div class="stat-cards-container flex flex-wrap justify-center">
             <div class="stat-card" onclick="animateCard(this)">
                 <div class="stat-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
@@ -47,7 +47,7 @@
     <section id="homeSection" class="content-section active block">
         <div class="mb-8 pt-8">
             <h1
-                class="text-4xl md:text-5xl font-extrabold mb-10 text-center uppercase font-['Playfair_Display'] tracking-wide">
+                class="text-4xl md:text-5xl font-extrabold mb-10 text-left uppercase font-['Playfair_Display'] tracking-wide">
                 <span class="text-[#1e1b4b]">COMLAB</span> <span class="text-[#fbbf24]">SCHEDULER</span>
             </h1>
 
@@ -61,9 +61,25 @@
             </div>
 
             <div class="filter-section mb-6">
-                <select id="roomFilter" class="filter-btn" onchange="handleFilterChange()">
-                    <option value="all">All Schedule</option>
-                </select>
+                <!-- Custom Dropdown for Room Filter -->
+                <div class="custom-dropdown" id="roomFilterDropdown">
+                    <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event)">
+                        <span id="selectedRoomText">All Schedule</span>
+                        <div class="dropdown-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options" id="roomDropdownOptions">
+                        <!-- Options will be populated via app.js -->
+                    </div>
+                    <!-- Hidden select to keep existing filter logic working -->
+                    <select id="roomFilter" class="hidden" onchange="handleFilterChange()">
+                        <option value="all">All Schedule</option>
+                    </select>
+                </div>
             </div>
 
             <div id="comlabGrid" class="comlab-grid w-full">

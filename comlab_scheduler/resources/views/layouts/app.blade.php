@@ -8,7 +8,7 @@
     <title>Faculty Management System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=4.0">
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=5.6">
 </head>
 
 <body
@@ -21,7 +21,7 @@
 
             @yield('hero')
 
-            <main id="mainContent" class="flex-grow w-full px-4 py-4 md:py-8 transition-all duration-300">
+            <main id="mainContent" class="flex-grow w-full py-4 md:py-8 transition-all duration-300">
                 @yield('content')
             </main>
         </div>
@@ -159,7 +159,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     </script>
-    <script src="{{ asset('assets/app.js') }}?v=2.0"></script>
+    <script src="{{ asset('assets/app.js') }}?v=4.3"></script>
     @stack('scripts')
 </body>
 
