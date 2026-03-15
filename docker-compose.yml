@@ -1,13 +1,10 @@
 services:
-  app:
-    volumes:
-      - .:/var/www/html:cached
-
   laravel-docker:
     container_name: it-faculty-comlab-scheduler
     build: .
     volumes:
-      - "C:/Users/Franz/Desktop/IT-Faculty ComLab Scheduler/comlab_scheduler:/var/www/html"
+      - "C:/Users/Franz/Desktop/IT-Faculty ComLab Scheduler/comlab_scheduler:/var/www/html:delegated"
+      - /var/www/html/vendor
     ports:
       - "9000:80"
     depends_on:

@@ -342,7 +342,10 @@ body.logged-out #dashboardPage {
    ══════════════════════════════════════════════════════════════ */
 /* ── Unified Layout Containers ── */
 .navbar-inner,
-#homeSection {
+#homeSection,
+#schedulesSection,
+#facultySection,
+#roomsSection {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
 }
@@ -350,7 +353,10 @@ body.logged-out #dashboardPage {
 @media (max-width: 480px) {
 
     .navbar-inner,
-    #homeSection {
+    #homeSection,
+    #schedulesSection,
+    #facultySection,
+    #roomsSection {
         padding-left: 1rem;
         padding-right: 1rem;
     }
@@ -359,7 +365,10 @@ body.logged-out #dashboardPage {
 @media (min-width: 768px) {
 
     .navbar-inner,
-    #homeSection {
+    #homeSection,
+    #schedulesSection,
+    #facultySection,
+    #roomsSection {
         padding-left: 2rem;
         padding-right: 2rem;
     }
@@ -368,7 +377,10 @@ body.logged-out #dashboardPage {
 @media (min-width: 1024px) {
 
     .navbar-inner,
-    #homeSection {
+    #homeSection,
+    #schedulesSection,
+    #facultySection,
+    #roomsSection {
         padding-left: 3.5rem !important;
         padding-right: 3.5rem !important;
     }
@@ -515,72 +527,90 @@ body.logged-out #dashboardPage {
     min-width: 0;
 }
 
-/* Digital Clock Pill */
-.navbar-clock {
-    display: none;
+
+
+
+/* Integrated User Profile Pill */
+.user-profile-pill {
+    display: flex;
     align-items: center;
+    gap: 10px;
+    padding: 6px 14px 6px 6px;
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px !important;
+
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 200px;
+    /* Ensures a consistent base width */
+    justify-content: space-between;
+}
+
+.user-profile-pill:hover {
     background: #1e1b4b;
-    color: white;
-    font-size: 0.82rem;
-    font-weight: 700;
-    padding: 0.4rem 1.1rem;
-    border-radius: 50px;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(30, 27, 75, 0.2);
-    transition: all 0.2s ease-in-out;
-    font-family: 'Inter', sans-serif;
+    border-color: #1e1b4b;
+    box-shadow: 0 4px 12px rgba(30, 27, 75, 0.2);
 }
 
-@media (min-width: 640px) {
-    .navbar-clock {
-        display: flex;
-    }
-}
-
-.navbar-clock:hover {
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(30, 27, 75, 0.3);
-}
-
-
-/* User Avatar */
-.navbar-avatar {
-    width: 40px;
-    height: 40px;
+.user-avatar-mini {
+    width: 32px;
+    height: 32px;
     background: #1e1b4b;
+    color: #fbbf24;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     font-weight: 800;
-    font-size: 0.95rem;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 8px rgba(30, 27, 75, 0.2);
-    flex-shrink: 0;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
 }
 
-.navbar-avatar:hover {
-    background: #312e81;
-    transform: scale(1.05);
-}
-
-/* Dropdown Arrow Indicator */
-.navbar-dropdown-arrow {
-    color: #94a3b8;
-    cursor: pointer;
-    font-size: 0.65rem;
-    transition: color 0.2s ease-in-out;
-    user-select: none;
-    margin-left: 8px;
-}
-
-.navbar-dropdown-arrow:hover {
+.user-profile-pill:hover .user-avatar-mini {
+    background: #fbbf24;
     color: #1e1b4b;
 }
+
+.user-name-text {
+    display: none;
+    /* Hidden on mobile */
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e1b4b;
+    transition: color 0.3s ease;
+    margin-right: auto;
+    /* Pushes the chevron to the far right */
+    text-transform: capitalize;
+}
+
+@media (min-width: 640px) {
+    .user-name-text {
+        display: block;
+    }
+}
+
+.user-profile-pill:hover .user-name-text {
+    color: white;
+}
+
+.profile-chevron {
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.user-profile-pill:hover .profile-chevron {
+    color: #fbbf24;
+    transform: translateY(1px);
+}
+
+/* Rotate chevron when dropdown is open */
+.user-profile-pill.active .profile-chevron {
+    transform: rotate(180deg);
+}
+
+
 
 
 
@@ -589,9 +619,12 @@ body.logged-out #dashboardPage {
     position: absolute;
     right: 0;
     top: calc(100% + 8px);
-    width: 200px;
+    width: 100%;
+    /* Dynamically matches the width of the pill */
+    min-width: 200px;
     background: white;
-    border-radius: 12px;
+    border-radius: 8px !important;
+
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
     border: 1px solid #e2e8f0;
     padding: 0.5rem 0;
@@ -621,6 +654,8 @@ body.logged-out #dashboardPage {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-transform: capitalize;
+    text-align: center;
 }
 
 .navbar-dropdown-footer {
@@ -636,13 +671,14 @@ body.logged-out #dashboardPage {
     background: #fef2f2;
     color: #ef4444;
     border: 1px solid #fee2e2;
-    border-radius: 8px;
+    border-radius: 8px !important;
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 
 .navbar-dropdown-logout-btn:hover {
     background: #ef4444;
@@ -894,6 +930,7 @@ body.logged-out #dashboardPage {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-transform: capitalize;
 }
 
 .drawer-user-role {
@@ -914,7 +951,8 @@ body.logged-out #dashboardPage {
     background: rgba(239, 68, 68, 0.1);
     color: #fca5a5;
     border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: 12px;
+    border-radius: 8px !important;
+
     font-weight: 700;
     font-size: 0.95rem;
     font-family: 'Inter', sans-serif;
@@ -1251,7 +1289,6 @@ body.logged-out #dashboardPage {
     background: #1e1b4b !important;
     color: white !important;
     padding: 0.6rem 1rem !important;
-    /* Adjusted for icon flex space */
     padding-right: 0.8rem !important;
     border-radius: 8px !important;
     font-weight: 700 !important;
@@ -1297,19 +1334,26 @@ body.logged-out #dashboardPage {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
     z-index: 2000;
     overflow-y: auto;
+    overflow-x: hidden;
     max-height: 0;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid #e2e8f0;
+    padding: 0;
 }
+
 
 .custom-dropdown.open .custom-dropdown-options {
     max-height: 350px;
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
     padding: 8px 0;
+    overflow-y: auto;
 }
+
 
 .custom-option {
     padding: 10px 16px;

@@ -2,13 +2,14 @@
 
 @section('content')
 <section id="facultySection" class="content-section active block">
-    <div class="mb-8 w-full">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 class="management-title text-3xl font-extrabold uppercase text-center md:text-left font-['Playfair_Display'] w-full md:w-auto">
-                <span class="text-[#1e1b4b]">MANAGE</span> 
-                <span class="text-[#fbbf24]">TEACHERS</span>
+    <div class="mb-8 pt-8 w-full">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-left uppercase font-['Playfair_Display'] tracking-wide">
+                <span class="text-[#1e1b4b]">MANAGE</span> <span class="text-[#fbbf24]">TEACHERS</span>
             </h1>
-            <x-button variant="outline" class="whitespace-nowrap text-lg" onclick="openModal('faculty')">Add Teacher</x-button>
+            <x-button variant="outline" class="!px-8 !py-3 !text-lg !font-extrabold rounded-full transition-all whitespace-nowrap" onclick="openModal('faculty')">
+                Add Teacher
+            </x-button>
         </div>
 
         <div class="teacher-filter-bar mb-6 text-center md:text-left">

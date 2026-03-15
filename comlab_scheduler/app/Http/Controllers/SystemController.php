@@ -233,24 +233,10 @@ class SystemController extends Controller
         $subject_id = $request->subject_id ? intval($request->subject_id) : 0;
         $room_id = $request->room_id ? intval($request->room_id) : 0;
 
-        if ($room_id === 0 && !empty($request->room_name)) {
-            $room = Room::firstOrCreate(['room_name' => $request->room_name], ['campus' => 'Main Campus']);
-            $room_id = $room->id;
+        if ($room_id === 0 || $faculty_id === 0 || $subject_id === 0) {
+            return response()->json(["success" => false, "error" => "Please select a valid Faculty, Subject and Room. If they aren't in the list, please create them first using their respective management pages."]);
         }
 
-        if ($faculty_id === 0 && !empty($request->faculty_name)) {
-            $teacher = Teacher::firstOrCreate(['name' => $request->faculty_name], ['employment_status' => 'Full-time']);
-            $faculty_id = $teacher->id;
-        }
-
-        if ($subject_id === 0 && !empty($request->subject_code)) {
-            $subject = Subject::firstOrCreate(['subject_code' => $request->subject_code], ['subject_name' => $request->subject_name ?? $request->subject_code]);
-            $subject_id = $subject->id;
-        }
-
-        if ($faculty_id === 0 || $subject_id === 0 || $room_id === 0) {
-            return response()->json(["success" => false, "error" => "Please select or type a valid Faculty, Subject and Room"]);
-        }
 
         // The legacy DB maps 'section' as a string, but the new migration uses 'section_id'.
         // If the 'sections' table is there, we should link it. Or just insert section string if we modify migration

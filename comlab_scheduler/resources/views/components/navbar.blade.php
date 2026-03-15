@@ -29,33 +29,44 @@ Reusable navigation bar component included on every authenticated page.
 
         {{-- ═══ CENTER: Navigation Links (desktop) ═══ --}}
         <div class="navbar-center">
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <a href="{{ route('dashboard') }}"
+                class="nav-link {{ (request()->routeIs('dashboard') || request()->is('/') || request()->is('dashboard*')) ? 'active' : '' }}">
                 Home
             </a>
-            <a href="{{ route('schedules') }}" class="nav-link {{ request()->routeIs('schedules') ? 'active' : '' }}">
+            <a href="{{ route('schedules') }}"
+                class="nav-link {{ (request()->routeIs('schedules') || request()->is('schedules*')) ? 'active' : '' }}">
                 Schedules
             </a>
-            <a href="{{ route('teachers') }}" class="nav-link {{ request()->routeIs('teachers') ? 'active' : '' }}">
+            <a href="{{ route('teachers') }}"
+                class="nav-link {{ (request()->routeIs('teachers') || request()->is('teachers*')) ? 'active' : '' }}">
                 Teachers
             </a>
             <a href="{{ route('comlabs_subjects') }}"
-                class="nav-link {{ request()->routeIs('comlabs_subjects') ? 'active' : '' }}">
+                class="nav-link {{ (request()->routeIs('comlabs_subjects') || request()->is('comlabs-subjects*')) ? 'active' : '' }}">
                 ComLabs &amp; Subjects
             </a>
         </div>
 
         {{-- ═══ RIGHT: Clock + User Avatar + Dropdown ═══ --}}
         <div class="navbar-right">
-            {{-- Digital Clock --}}
-            <div id="digitalClock" class="navbar-clock">
-                --:--:--
-            </div>
 
-            {{-- User Profile Avatar --}}
+
+            {{-- Integrated User Profile Pill --}}
             <div class="relative">
-                <div id="userProfileBtn" onclick="toggleUserMenu()" class="navbar-avatar">
-                    {{ strtoupper(substr(auth()->user()->username ?? auth()->user()->name ?? 'A', 0, 1)) }}
+                <div id="userProfileBtn" onclick="toggleUserMenu()" class="user-profile-pill">
+                    <div class="user-avatar-mini">
+                        {{ strtoupper(substr(auth()->user()->username ?? auth()->user()->name ?? 'A', 0, 1)) }}
+                    </div>
+                    <span class="user-name-text">
+                        {{ auth()->user()->username ?? auth()->user()->name ?? 'Admin' }}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                        class="profile-chevron">
+                        <path d="m6 9 6 6 6-6" />
+                    </svg>
                 </div>
+
                 {{-- Dropdown --}}
                 <div id="userDropdownMenu" class="navbar-dropdown hidden">
                     <div class="navbar-dropdown-header">
@@ -79,9 +90,6 @@ Reusable navigation bar component included on every authenticated page.
                     </form>
                 </div>
             </div>
-
-            {{-- Dropdown arrow --}}
-            <span onclick="toggleUserMenu()" class="navbar-dropdown-arrow">▼</span>
         </div>
 
         {{-- ═══ HAMBURGER BUTTON (mobile/tablet only) ═══ --}}
@@ -120,7 +128,8 @@ Reusable navigation bar component included on every authenticated page.
 
     {{-- Drawer Nav Links --}}
     <nav class="drawer-nav">
-        <a href="{{ route('dashboard') }}" class="drawer-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+        <a href="{{ route('dashboard') }}"
+            class="drawer-link {{ (request()->routeIs('dashboard') || request()->is('/') || request()->is('dashboard')) ? 'active' : '' }}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -128,7 +137,8 @@ Reusable navigation bar component included on every authenticated page.
             </svg>
             Home
         </a>
-        <a href="{{ route('schedules') }}" class="drawer-link {{ request()->routeIs('schedules') ? 'active' : '' }}">
+        <a href="{{ route('schedules') }}"
+            class="drawer-link {{ (request()->routeIs('schedules') || request()->is('schedules*')) ? 'active' : '' }}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -138,7 +148,8 @@ Reusable navigation bar component included on every authenticated page.
             </svg>
             Schedules
         </a>
-        <a href="{{ route('teachers') }}" class="drawer-link {{ request()->routeIs('teachers') ? 'active' : '' }}">
+        <a href="{{ route('teachers') }}"
+            class="drawer-link {{ (request()->routeIs('teachers') || request()->is('teachers*')) ? 'active' : '' }}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -149,7 +160,7 @@ Reusable navigation bar component included on every authenticated page.
             Teachers
         </a>
         <a href="{{ route('comlabs_subjects') }}"
-            class="drawer-link {{ request()->routeIs('comlabs_subjects') ? 'active' : '' }}">
+            class="drawer-link {{ (request()->routeIs('comlabs_subjects') || request()->is('comlabs-subjects*')) ? 'active' : '' }}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
@@ -189,17 +200,27 @@ Reusable navigation bar component included on every authenticated page.
 <script>
     // ── User dropdown toggle ──
     function toggleUserMenu() {
+        const btn = document.getElementById('userProfileBtn');
         const menu = document.getElementById('userDropdownMenu');
-        if (menu) menu.classList.toggle('hidden');
+        if (menu) {
+            const isHidden = menu.classList.toggle('hidden');
+            if (btn) {
+                if (!isHidden) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+        }
     }
 
     // Close dropdown if clicking outside
     document.addEventListener('click', function (e) {
         const btn = document.getElementById('userProfileBtn');
         const menu = document.getElementById('userDropdownMenu');
-        const arrow = e.target.closest('.navbar-dropdown-arrow');
-        if (!arrow && btn && menu && !btn.contains(e.target)) {
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
             menu.classList.add('hidden');
+            btn.classList.remove('active');
         }
     });
 
@@ -237,18 +258,7 @@ Reusable navigation bar component included on every authenticated page.
         }
     });
 
-    // ── Digital Clock ──
-    (function startClock() {
-        const clock = document.getElementById('digitalClock');
-        if (!clock) return;
-        function tick() {
-            clock.textContent = new Date().toLocaleTimeString([], {
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
-        }
-        tick();
-        setInterval(tick, 1000);
-    })();
+
 
     // ── Navbar shadow on scroll ──
     window.addEventListener('scroll', function () {

@@ -1,6 +1,5 @@
 // Auth State Management
 async function checkAuth() {
-    startClock(); // Start immediately so user sees "life"
     try {
         const res = await fetch('/api/check');
         const data = await res.json();
@@ -10,7 +9,7 @@ async function checkAuth() {
 
             // Load components as Promises to avoid blocking
             loadCounts();
-            showSection('home');
+            // showSection('home'); // Removed to allow server-side link management
         } else {
             document.body.classList.add('logged-out');
             document.body.classList.remove('logged-in');
@@ -649,6 +648,7 @@ function showSection(sectionId) {
         hero.style.display = (sectionId === 'schedules' || sectionId === 'faculty' || sectionId === 'rooms') ? 'none' : 'block';
     }
 
+    /* 
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
         // Match by the section ID in the onclick attribute
@@ -656,6 +656,7 @@ function showSection(sectionId) {
             link.classList.add('active');
         }
     });
+    */
 
     if (sectionId === 'home') {
         loadLabGrid();
@@ -930,16 +931,7 @@ async function deleteItem(section, id) {
     }
 }
 
-// Digital Clock
-function startClock() {
-    const clock = document.getElementById('digitalClock');
-    if (!clock) return;
 
-    setInterval(() => {
-        const now = new Date();
-        clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }, 1000);
-}
 
 // Home View Toggling
 function toggleHomeView(view) {
@@ -952,6 +944,7 @@ function toggleHomeView(view) {
     const hero = document.querySelector('.hero-banner');
 
     if (view === 'schedules') {
+        // Keep hero visible to maintain layout stability
         if (hero) hero.style.display = 'block';
         if (comlabGrid) comlabGrid.style.display = 'grid';
         if (teacherGrid) teacherGrid.style.display = 'none';
@@ -968,7 +961,8 @@ function toggleHomeView(view) {
         }
         loadLabGrid();
     } else {
-        if (hero) hero.style.display = 'none';
+        // Keep hero visible to maintain layout stability
+        if (hero) hero.style.display = 'block';
         if (comlabGrid) comlabGrid.style.display = 'none';
         if (teacherGrid) teacherGrid.style.display = 'block';
         if (teacherFilter) teacherFilter.style.display = 'flex';
@@ -1714,6 +1708,17 @@ function handleFilterChange() {
         if (customDropdown) customDropdown.classList.remove('has-selection');
     }
 
+    const visualFilter = document.getElementById('scheduleVisualFilter');
+    const visualDropdown = document.getElementById('scheduleVisualFilterDropdown');
+    if (visualFilter && visualFilter.value !== 'all') {
+        visualFilter.classList.add('has-selection');
+        if (visualDropdown) visualDropdown.classList.add('has-selection');
+    } else if (visualFilter) {
+        visualFilter.classList.remove('has-selection');
+        if (visualDropdown) visualDropdown.classList.remove('has-selection');
+    }
+
+
     if (comlabGrid && comlabGrid.style.display !== 'none') {
         loadLabGrid();
     } else {
@@ -1722,22 +1727,33 @@ function handleFilterChange() {
 }
 
 // Custom Dropdown Logic
-function toggleCustomDropdown(event) {
+function toggleCustomDropdown(event, id = 'roomFilterDropdown') {
     if (event) event.stopPropagation();
-    const dropdown = document.getElementById('roomFilterDropdown');
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+
+    // Close others
+    document.querySelectorAll('.custom-dropdown').forEach(d => {
+        if (d.id !== id) d.classList.remove('open');
+    });
+
     dropdown.classList.toggle('open');
 }
 
-function selectCustomOption(value, text) {
-    const dropdown = document.getElementById('roomFilterDropdown');
-    const selectedText = document.getElementById('selectedRoomText');
-    const hiddenSelect = document.getElementById('roomFilter');
+function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', textId = 'selectedRoomText', selectId = 'roomFilter') {
+    const dropdown = document.getElementById(dropdownId);
+    const selectedText = document.getElementById(textId);
+    const hiddenSelect = document.getElementById(selectId);
 
     if (selectedText) selectedText.textContent = text;
     if (hiddenSelect) {
         hiddenSelect.value = value;
         // Trigger the original filter change
-        handleFilterChange();
+        if (selectId === 'roomFilter') {
+            handleFilterChange();
+        } else {
+            renderSchedulesVisualGrid();
+        }
     }
 
     // Update selected class in options
@@ -1756,11 +1772,13 @@ function selectCustomOption(value, text) {
 
 // Global click listener to close dropdown
 document.addEventListener('click', function (e) {
-    const dropdown = document.getElementById('roomFilterDropdown');
-    if (dropdown && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('open');
-    }
+    document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+        }
+    });
 });
+
 
 // Teacher Grid Logic
 async function loadTeacherGrid() {
@@ -2202,11 +2220,28 @@ async function populateRoomDropdowns() {
         if (visualFilter) {
             const currentVisualVal = visualFilter.value;
             visualFilter.innerHTML = '<option value="all">All schedule</option>';
+
+            // Custom dropdown support for schedules page
+            const visualOptionsDiv = document.getElementById('visualRoomOptions');
+            let visualOptionsHtml = `<div class="custom-option ${currentVisualVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All schedule', 'scheduleVisualFilterDropdown', 'selectedVisualRoomText', 'scheduleVisualFilter')">All schedule</div>`;
+
             rooms.forEach(room => {
                 visualFilter.innerHTML += `<option value="${room.name}">${room.name}</option>`;
+                visualOptionsHtml += `<div class="custom-option ${currentVisualVal === room.name ? 'selected' : ''}" data-value="${room.name}" onclick="selectCustomOption('${room.name}', '${room.name}', 'scheduleVisualFilterDropdown', 'selectedVisualRoomText', 'scheduleVisualFilter')">${room.name}</div>`;
             });
+
+            if (visualOptionsDiv) visualOptionsDiv.innerHTML = visualOptionsHtml;
+
             visualFilter.value = currentVisualVal;
             if (!visualFilter.value) visualFilter.value = 'all';
+
+            // Sync visual text
+            const selectedVisualText = document.getElementById('selectedVisualRoomText');
+            if (selectedVisualText && visualFilter.value !== 'all') {
+                selectedVisualText.textContent = visualFilter.value;
+            } else if (selectedVisualText) {
+                selectedVisualText.textContent = 'All schedule';
+            }
         }
 
         const managementFilter = document.getElementById('roomsManagementFilter');

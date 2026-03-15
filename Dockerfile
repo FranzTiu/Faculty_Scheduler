@@ -32,3 +32,6 @@ RUN docker-php-ext-install \
 
 # Set Apache document root to Laravel public folder
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
+# in Dockerfile
+CMD [ "bash", "-c", "if [ ! -f vendor/autoload.php ]; then composer install; fi && apache2-foreground" ]
