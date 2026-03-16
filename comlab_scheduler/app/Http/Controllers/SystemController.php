@@ -99,9 +99,13 @@ class SystemController extends Controller
             ];
         }));
     }
-
     public function addSubject(Request $request)
     {
+        $request->validate([
+            'code' => 'required|string|max:255|unique:subjects,subject_code',
+            'name' => 'required|string|max:255',
+        ]);
+
         DB::beginTransaction();
         try {
             $subject = Subject::create([
@@ -128,6 +132,11 @@ class SystemController extends Controller
 
     public function updateSubject(Request $request, $id)
     {
+        $request->validate([
+            'code' => 'required|string|max:255|unique:subjects,subject_code,' . $id,
+            'name' => 'required|string|max:255',
+        ]);
+
         DB::beginTransaction();
         try {
             $subject = Subject::find($id);

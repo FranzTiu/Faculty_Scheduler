@@ -1534,6 +1534,11 @@ body.logged-out #dashboardPage {
     font-size: 0.9rem;
     font-weight: 600;
     color: #1e1b4b;
+    text-transform: capitalize;
+}
+
+.schedule-slot {
+    text-transform: capitalize;
 }
 
 /* Data Sections */
@@ -1542,6 +1547,16 @@ body.logged-out #dashboardPage {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+}
+
+.btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(30, 27, 75, 0.15);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(30, 27, 75, 0.25);
 }
 
 .btn-primary {
@@ -1919,9 +1934,9 @@ th {
 .data-table .subject-name-cell {
     text-align: center !important;
     vertical-align: middle !important;
+    text-transform: capitalize;
 }
 
-.teacher-manage-table th:nth-child(1),
 .teacher-manage-table .teacher-name-cell {
     width: 15%;
     font-family: 'Playfair Display', serif;
@@ -1929,7 +1944,10 @@ th {
     color: #1e1b4b;
 }
 
-.teacher-manage-table th:nth-child(2),
+.teacher-manage-table th:nth-child(1) {
+    width: 15%;
+}
+
 .teacher-manage-table .status-cell {
     width: 12%;
     font-family: 'Playfair Display', serif;
@@ -1937,27 +1955,45 @@ th {
     color: #1e1b4b;
 }
 
-.teacher-manage-table th:nth-child(3),
-.teacher-manage-table .subject-cell {
-    width: 50%;
-    text-align: left !important;
-    padding-left: 1.5rem !important;
-    font-weight: 700;
-    color: #1e1b4b;
+.teacher-manage-table th:nth-child(2) {
+    width: 12%;
 }
 
-.teacher-manage-table th:nth-child(4),
+.teacher-manage-table .subject-cell {
+    width: 50%;
+    text-align: center !important;
+    font-weight: 700;
+    color: #1e1b4b;
+    text-transform: capitalize;
+}
+
+.teacher-manage-table th:nth-child(3) {
+    width: 50%;
+    text-align: center !important;
+}
+
 .teacher-manage-table .section-cell {
     width: 13%;
     text-align: left !important;
     padding-left: 1rem !important;
     font-weight: 700;
     color: #1e1b4b;
+    text-transform: capitalize;
 }
 
-.teacher-manage-table th:nth-child(5),
+.teacher-manage-table th:nth-child(4) {
+    width: 13%;
+    text-align: center !important;
+    padding-left: 1rem !important;
+}
+
 .teacher-manage-table .action-cell,
 .data-table td.action-cell {
+    width: 10%;
+    text-align: center !important;
+}
+
+.teacher-manage-table th:nth-child(5) {
     width: 10%;
     text-align: center !important;
 }
@@ -1965,6 +2001,7 @@ th {
 .teacher-manage-table td {
     padding: 0.5rem 0.8rem !important;
     vertical-align: middle !important;
+    text-transform: capitalize;
 }
 
 .teacher-manage-table thead th:last-child {
@@ -2006,12 +2043,15 @@ th {
     padding: 1rem 0.5rem !important;
 }
 
-#scheduleCombinedTable th:nth-child(1),
 #scheduleCombinedTable td:nth-child(1) {
     width: 45% !important;
     font-weight: 900 !important;
     /* Bold as per image */
     color: #1e1b4b !important;
+}
+
+#scheduleCombinedTable th:nth-child(1) {
+    width: 45% !important;
 }
 
 #scheduleCombinedTable th:nth-child(2),
@@ -2164,4 +2204,104 @@ th {
 .detail-cell-bg {
     background: #e0e7ff;
     /* Lavender-like background for details column */
+}
+
+/* Clean Custom Time Picker Design */
+.time-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.time-picker-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1.5px solid #1e1b4b;
+    border-radius: 10px;
+    padding: 8px 15px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    justify-content: space-between;
+}
+
+.time-picker-custom:focus-within {
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.time-select-inputs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.time-unit-select {
+    background: transparent;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e1b4b;
+    cursor: pointer;
+    text-align: center;
+    width: 38px;
+    appearance: none;
+    padding: 0;
+}
+
+.time-unit-select:focus {
+    color: #fbbf24;
+    outline: none;
+}
+
+.time-separator {
+    font-weight: 900;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+}
+
+.ampm-toggle-btn {
+    background: #1e1b4b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    min-width: 48px;
+    text-align: center;
+}
+
+.ampm-toggle-btn:hover {
+    background: #2d2a6e;
+    transform: scale(1.05);
+}
+
+.ampm-toggle-btn.pm {
+    background: #fbbf24;
+    color: #1e1b4b;
+}
+
+.time-display-clean {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e1b4b;
+    padding: 10px 15px;
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 5px;
+    transition: all 0.2s;
+}
+
+.time-display-clean:hover {
+    background: #dcfce7;
+    transform: translateY(-1px);
 }

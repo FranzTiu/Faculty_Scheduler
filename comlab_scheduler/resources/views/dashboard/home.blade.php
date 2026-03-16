@@ -45,7 +45,7 @@
 
 @section('content')
     <section id="homeSection" class="content-section active block">
-        <div class="mb-8 pt-8">
+        <div class="mb-8 pt-4">
             <h1
                 class="text-4xl md:text-5xl font-extrabold mb-10 text-left uppercase font-['Playfair_Display'] tracking-wide">
                 <span class="text-[#1e1b4b]">COMLAB</span> <span class="text-[#fbbf24]">SCHEDULER</span>
@@ -58,6 +58,7 @@
                 <button id="toggleTeachers"
                     class="toggle-btn outline w-full sm:w-48 !py-3 !text-lg !font-extrabold rounded-full transition-all"
                     onclick="toggleHomeView('teachers')">Teachers</button>
+
             </div>
 
             <div class="filter-section mb-6">
@@ -86,10 +87,24 @@
                 <!-- Lab cards will be loaded dynamically -->
                 <div class="col-span-full p-8 text-slate-400 text-center">Loading schedules...</div>
             </div>
-            <div id="teacherFilterContainer" class="teacher-filter-bar mb-6 text-left hidden">
-                <select id="teacherSelectFilter" class="filter-btn" onchange="handleFilterChange()">
-                    <option value="all">All Teacher</option>
-                </select>
+            <div id="teacherFilterContainer" class="filter-section mb-6 hidden">
+                <div class="custom-dropdown" id="teacherFilterDropdown">
+                    <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'teacherFilterDropdown')">
+                        <span id="selectedTeacherText">All Teacher</span>
+                        <div class="dropdown-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options" id="teacherDropdownOptions">
+                        <!-- Options will be populated via app.js -->
+                    </div>
+                    <select id="teacherSelectFilter" class="hidden" onchange="handleFilterChange()">
+                        <option value="all">All Teacher</option>
+                    </select>
+                </div>
             </div>
             <div id="teacherGrid" class="teacher-grid-wrapper w-full hidden">
                 <!-- Teacher table will be loaded dynamically -->
@@ -103,7 +118,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Since we split the pages, trigger the init sequence selectively
             loadCounts();
-            loadHomeData(); // This loads the lab schedule and teacher schedule for the home view
+            toggleHomeView('schedules'); // Correctly initialize the home view
         });
     </script>
 @endpush

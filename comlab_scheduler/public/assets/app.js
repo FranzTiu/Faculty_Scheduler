@@ -215,150 +215,201 @@ function openModal(section, options = {}) {
             </div>
         `;
     } else if (section === 'schedules') {
-        fields.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 1rem;">Loading dropdown data...</div>';
+        renderScheduleFormStructure();
 
         Promise.all([
             fetch('/api/rooms').then(r => r.json()),
             fetch('/api/subjects').then(r => r.json()),
             fetch('/api/faculty').then(r => r.json())
         ]).then(([rooms, subjects, faculty]) => {
-            // Sort: COMLAB/COMPLAB 1-7 first, then other rooms alphabetically
-            rooms.sort((a, b) => {
-                const aName = a.name.toUpperCase();
-                const bName = b.name.toUpperCase();
-                const aIsLab = aName.startsWith('COMLAB') || aName.startsWith('COMPLAB');
-                const bIsLab = bName.startsWith('COMLAB') || bName.startsWith('COMPLAB');
-                if (aIsLab && !bIsLab) return -1;
-                if (!aIsLab && bIsLab) return 1;
-                return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
-            });
-
-            fields.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group" id="roomGroup">
-                        <label>Name Room</label>
-                        <select id="m_room_id" onchange="toggleTypedInput('room')" required>
-                            <option value="">Select Room</option>
-                            ${rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-                            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add Room</option>
-                        </select>
-                        <div id="roomTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
-                            <input type="text" id="m_room_name" placeholder="e.g. COMLAB 10" style="font-size: 0.85rem;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Day</label>
-                        <select id="m_day" required>
-                            <option value="Monday">Monday</option>
-                            <option value="Tuesday">Tuesday</option>
-                            <option value="Wednesday">Wednesday</option>
-                            <option value="Thursday">Thursday</option>
-                            <option value="Friday">Friday</option>
-                            <option value="Saturday">Saturday</option>
-                            <option value="Sunday">Sunday</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group" id="subjectGroup">
-                    <label>Subject</label>
-                    <select id="m_subject_id" onchange="toggleTypedInput('subject')" required>
-                        <option value="">Select Subject</option>
-                        ${subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name}</option>`).join('')}
-                        <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add New Subject</option>
-                    </select>
-                    <div id="subjectTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
-                        <input type="text" id="m_subject_code" placeholder="Code (e.g. IT-101)" style="margin-bottom: 5px; font-size: 0.85rem;">
-                        <input type="text" id="m_subject_name" placeholder="Subject Name" style="font-size: 0.85rem;">
-                    </div>
-                </div>
-
-                <div class="form-group" id="facultyGroup">
-                    <label>Teacher</label>
-                    <select id="m_faculty_id" onchange="toggleTypedInput('faculty')" required>
-                        <option value="">Select Teacher</option>
-                        ${faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
-                        <option value="other" style="color: #4f46e5; font-weight: 800;">+ Type New Teacher</option>
-                    </select>
-                    <div id="facultyTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
-                        <input type="text" id="m_faculty_name" placeholder="Enter Teacher Name" style="font-size: 0.85rem;">
-                    </div>
-                </div>
-
-                <div style="margin-top: 10px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 0.5rem;">
-                        <div class="form-group">
-                            <label>Start Time</label>
-                            <input type="hidden" id="m_start">
-                            <div id="startTimePicker" style="display: flex; align-items: center; gap: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;">
-                                <select id="m_start_hr" style="background: transparent; border: none; padding: 2px; font-size: 0.95rem; font-weight: 600; color: #1e1b4b; cursor: pointer; width: 40px; text-align: center; appearance: none;">
-                                    ${[...Array(12)].map((_, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')}</option>`).join('')}
-                                </select>
-                                <span style="font-weight:700; color:#64748b; font-size: 1rem;">:</span>
-                                <select id="m_start_min" style="background: transparent; border: none; padding: 2px; font-size: 0.95rem; font-weight: 600; color: #1e1b4b; cursor: pointer; width: 40px; text-align: center; appearance: none;">
-                                    ${[...Array(60)].map((_, i) => `<option value="${i}">${String(i).padStart(2, '0')}</option>`).join('')}
-                                </select>
-                                <select id="m_start_ampm" style="background: #e2e8f0; border: none; padding: 4px 8px; font-size: 0.8rem; font-weight: 700; color: #1e1b4b; cursor: pointer; border-radius: 6px; appearance: none; text-align: center; margin-left: 2px;">
-                                    <option value="AM">AM</option>
-                                    <option value="PM">PM</option>
-                                </select>
-                                <button type="button" onclick="confirmTime('start')" style="margin-left: auto; padding: 4px 12px; background: #fbbf24; color: #000; border: none; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">OK</button>
-                            </div>
-                            <div id="startTimeDisplay" style="display: none; margin-top: 4px; font-size: 0.9rem; font-weight: 600; color: #1e1b4b; padding: 8px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; cursor: pointer;" onclick="document.getElementById('startTimePicker').style.display='flex'; this.style.display='none';"></div>
-                        </div>
-                        <div class="form-group">
-                            <label>End Time</label>
-                            <input type="hidden" id="m_end">
-                            <div id="endTimePicker" style="display: flex; align-items: center; gap: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;">
-                                <select id="m_end_hr" style="background: transparent; border: none; padding: 2px; font-size: 0.95rem; font-weight: 600; color: #1e1b4b; cursor: pointer; width: 40px; text-align: center; appearance: none;">
-                                    ${[...Array(12)].map((_, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')}</option>`).join('')}
-                                </select>
-                                <span style="font-weight:700; color:#64748b; font-size: 1rem;">:</span>
-                                <select id="m_end_min" style="background: transparent; border: none; padding: 2px; font-size: 0.95rem; font-weight: 600; color: #1e1b4b; cursor: pointer; width: 40px; text-align: center; appearance: none;">
-                                    ${[...Array(60)].map((_, i) => `<option value="${i}">${String(i).padStart(2, '0')}</option>`).join('')}
-                                </select>
-                                <select id="m_end_ampm" style="background: #e2e8f0; border: none; padding: 4px 8px; font-size: 0.8rem; font-weight: 700; color: #1e1b4b; cursor: pointer; border-radius: 6px; appearance: none; text-align: center; margin-left: 2px;">
-                                    <option value="AM">AM</option>
-                                    <option value="PM">PM</option>
-                                </select>
-                                <button type="button" onclick="confirmTime('end')" style="margin-left: auto; padding: 4px 12px; background: #fbbf24; color: #000; border: none; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">OK</button>
-                            </div>
-                            <div id="endTimeDisplay" style="display: none; margin-top: 4px; font-size: 0.9rem; font-weight: 600; color: #1e1b4b; padding: 8px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; cursor: pointer;" onclick="document.getElementById('endTimePicker').style.display='flex'; this.style.display='none';"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Section</label>
-                    <input type="text" id="m_section" placeholder="e.g. AI32">
-                </div>
-            `;
+            populateScheduleDropdowns(rooms, subjects, faculty);
         });
     }
 }
 
-function confirmTime(type) {
-    const prefix = type === 'start' ? 'm_start' : 'm_end';
-    let hr = parseInt(document.getElementById(prefix + '_hr').value);
-    const min = parseInt(document.getElementById(prefix + '_min').value);
-    const ampm = document.getElementById(prefix + '_ampm').value;
+function renderScheduleFormStructure() {
+    const fields = document.getElementById('modalFields');
+    fields.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group" id="roomGroup">
+                <label>Room</label>
+                <select id="m_room_id" onchange="toggleTypedInput('room')" required>
+                    <option value="">Loading...</option>
+                </select>
+                <div id="roomTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
+                    <input type="text" id="m_room_name" placeholder="e.g. COMLAB 10" style="font-size: 0.85rem;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Day</label>
+                <select id="m_day" required>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+        </div>
 
-    // Convert to 24hr for the hidden input
+        <div class="form-group" id="subjectGroup">
+            <label>Subject</label>
+            <select id="m_subject_id" onchange="toggleTypedInput('subject')" required>
+                <option value="">Loading...</option>
+            </select>
+            <div id="subjectTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
+                <input type="text" id="m_subject_code" placeholder="Code (e.g. IT-101)" style="margin-bottom: 5px; font-size: 0.85rem;">
+                <input type="text" id="m_subject_name" placeholder="Subject Name" style="font-size: 0.85rem;">
+            </div>
+        </div>
+
+        <div class="form-group" id="facultyGroup">
+            <label>Teacher</label>
+            <select id="m_faculty_id" onchange="toggleTypedInput('faculty')" required>
+                <option value="">Loading...</option>
+            </select>
+            <div id="facultyTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
+                <input type="text" id="m_faculty_name" placeholder="Enter Teacher Name" style="font-size: 0.85rem;">
+            </div>
+        </div>
+
+        <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="time-group">
+                <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 4px; display: block;">Start Time</label>
+                <input type="hidden" id="m_start">
+                <div id="startTimePicker" class="time-picker-custom">
+                    <div class="time-select-inputs">
+                        <select id="m_start_hr" class="time-unit-select" onchange="syncTime('start')">
+                            ${[...Array(12)].map((_, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')}</option>`).join('')}
+                        </select>
+                        <span class="time-separator">:</span>
+                        <select id="m_start_min" class="time-unit-select" onchange="syncTime('start')">
+                            ${[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => `<option value="${m}">${String(m).padStart(2, '0')}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button type="button" id="m_start_ampm_btn" class="ampm-toggle-btn" onclick="toggleAmpm('start')">AM</button>
+                    <input type="hidden" id="m_start_ampm" value="AM">
+                </div>
+                <div id="startTimeDisplay" class="time-display-clean" style="display: none;" onclick="showTimePicker('start')"></div>
+            </div>
+
+            <div class="time-group">
+                <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 4px; display: block;">End Time</label>
+                <input type="hidden" id="m_end">
+                <div id="endTimePicker" class="time-picker-custom">
+                    <div class="time-select-inputs">
+                        <select id="m_end_hr" class="time-unit-select" onchange="syncTime('end')">
+                            ${[...Array(12)].map((_, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')}</option>`).join('')}
+                        </select>
+                        <span class="time-separator">:</span>
+                        <select id="m_end_min" class="time-unit-select" onchange="syncTime('end')">
+                            ${[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => `<option value="${m}">${String(m).padStart(2, '0')}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button type="button" id="m_end_ampm_btn" class="ampm-toggle-btn" onclick="toggleAmpm('end')">AM</button>
+                    <input type="hidden" id="m_end_ampm" value="AM">
+                </div>
+                <div id="endTimeDisplay" class="time-display-clean" style="display: none;" onclick="showTimePicker('end')"></div>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Section</label>
+            <input type="text" id="m_section" placeholder="e.g. AI32">
+        </div>
+    `;
+
+    // Initialize hidden inputs
+    syncTime('start');
+    syncTime('end');
+}
+
+function populateScheduleDropdowns(rooms, subjects, faculty) {
+    // Sort rooms
+    rooms.sort((a, b) => {
+        const aName = a.name.toUpperCase();
+        const bName = b.name.toUpperCase();
+        const aIsLab = aName.startsWith('COMLAB') || aName.startsWith('COMPLAB');
+        const bIsLab = bName.startsWith('COMLAB') || bName.startsWith('COMPLAB');
+        if (aIsLab && !bIsLab) return -1;
+        if (!aIsLab && bIsLab) return 1;
+        return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    const roomSelect = document.getElementById('m_room_id');
+    const subjectSelect = document.getElementById('m_subject_id');
+    const facultySelect = document.getElementById('m_faculty_id');
+
+    if (roomSelect) {
+        roomSelect.innerHTML = `
+            <option value="">Select Room</option>
+            ${rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add Room</option>
+        `;
+    }
+
+    if (subjectSelect) {
+        subjectSelect.innerHTML = `
+            <option value="">Select Subject</option>
+            ${subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name}</option>`).join('')}
+            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add New Subject</option>
+        `;
+    }
+
+    if (facultySelect) {
+        facultySelect.innerHTML = `
+            <option value="">Select Teacher</option>
+            ${faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
+            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Type New Teacher</option>
+        `;
+    }
+}
+
+function toggleAmpm(type) {
+    const hidden = document.getElementById(`m_${type}_ampm`);
+    const btn = document.getElementById(`m_${type}_ampm_btn`);
+
+    if (hidden.value === 'AM') {
+        hidden.value = 'PM';
+        btn.textContent = 'PM';
+        btn.classList.add('pm');
+    } else {
+        hidden.value = 'AM';
+        btn.textContent = 'AM';
+        btn.classList.remove('pm');
+    }
+    syncTime(type);
+}
+
+function syncTime(type) {
+    const prefix = 'm_' + type;
+    const hrSelect = document.getElementById(prefix + '_hr');
+    const minSelect = document.getElementById(prefix + '_min');
+    const ampmInput = document.getElementById(prefix + '_ampm');
+
+    if (!hrSelect || !minSelect || !ampmInput) return;
+
+    let hr = parseInt(hrSelect.value);
+    const min = parseInt(minSelect.value);
+    const ampm = ampmInput.value;
+
     let hr24 = hr;
     if (ampm === 'AM' && hr === 12) hr24 = 0;
     else if (ampm === 'PM' && hr !== 12) hr24 = hr + 12;
 
     const timeValue = String(hr24).padStart(2, '0') + ':' + String(min).padStart(2, '0');
-    document.getElementById('m_' + type).value = timeValue;
-
-    // Show display and hide picker
-    const displayText = String(hr).padStart(2, '0') + ':' + String(min).padStart(2, '0') + ' ' + ampm;
-    const pickerEl = document.getElementById(type + 'TimePicker');
-    const displayEl = document.getElementById(type + 'TimeDisplay');
-    displayEl.textContent = '✓ ' + displayText;
-    displayEl.style.display = 'block';
-    pickerEl.style.display = 'none';
+    document.getElementById(prefix).value = timeValue;
 }
+
+function showTimePicker(type) {
+    document.getElementById(type + 'TimePicker').style.display = 'flex';
+    document.getElementById(type + 'TimeDisplay').style.display = 'none';
+}
+
+// Removed confirmTime as it's now integrated into syncTime and automatic on changes.
+
 
 function toggleTypedInput(type) {
     const select = document.getElementById(`m_${type}_id`);
@@ -1172,9 +1223,13 @@ function switchCombinedView(view) {
     if (view === 'comlabs') {
         addBtn.textContent = 'Add ComLab';
         addBtn.setAttribute('onclick', 'openEditRoomModal()');
+        const selectedText = document.getElementById('selectedCombinedText');
+        if (selectedText) selectedText.textContent = 'All ComLabs';
     } else {
         addBtn.textContent = 'Add Subject';
         addBtn.setAttribute('onclick', 'openSubjectModal()');
+        const selectedText = document.getElementById('selectedCombinedText');
+        if (selectedText) selectedText.textContent = 'All Subjects';
     }
 
     // Populate filter dropdown appropriately
@@ -1186,36 +1241,51 @@ function switchCombinedView(view) {
 
 async function populateCombinedFilter() {
     const filter = document.getElementById('combinedManagementFilter');
-    if (!filter) return;
+    const optionsDiv = document.getElementById('combinedFilterOptions');
+    if (!filter || !optionsDiv) return;
 
-    const currentVal = filter.value;
+    const currentVal = filter.value || 'all';
+    let filterHtml = '';
+    let optionsHtml = '';
 
     if (currentCombinedView === 'comlabs') {
-        filter.innerHTML = '<option value="all">All ComLabs</option>';
+        filterHtml = '<option value="all">All ComLabs</option>';
+        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All ComLabs', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All ComLabs</div>`;
         try {
             const res = await fetch('/api/rooms');
             const rooms = await res.json();
             rooms.forEach(room => {
-                filter.innerHTML += `<option value="${room.name}">${room.name}</option>`;
+                const name = room.name.replace(/COMPLAB/g, 'COMLAB');
+                filterHtml += `<option value="${name}">${name}</option>`;
+                optionsHtml += `<div class="custom-option ${currentVal === name ? 'selected' : ''}" data-value="${name}" onclick="selectCustomOption('${name}', '${name}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${name}</div>`;
             });
         } catch (e) {
             console.error(e);
         }
     } else {
-        filter.innerHTML = '<option value="all">All Subjects</option>';
+        filterHtml = '<option value="all">All Subjects</option>';
+        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Subjects', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Subjects</div>`;
         try {
             const res = await fetch('/api/subjects');
             const subjects = await res.json();
             subjects.forEach(sub => {
-                filter.innerHTML += `<option value="${sub.code}">${sub.code} - ${sub.name}</option>`;
+                filterHtml += `<option value="${sub.code}">${sub.code} - ${sub.name}</option>`;
+                optionsHtml += `<div class="custom-option ${currentVal === sub.code ? 'selected' : ''}" data-value="${sub.code}" onclick="selectCustomOption('${sub.code}', '${sub.code} - ${sub.name}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${sub.code} - ${sub.name}</div>`;
             });
         } catch (e) {
             console.error(e);
         }
     }
 
-    if (currentVal && Array.from(filter.options).some(o => o.value === currentVal)) {
-        filter.value = currentVal;
+    filter.innerHTML = filterHtml;
+    optionsDiv.innerHTML = optionsHtml;
+    filter.value = currentVal;
+    if (!filter.value) filter.value = 'all';
+
+    // Update selection highlight color
+    const dropdown = document.getElementById('combinedFilterDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('has-selection', filter.value !== 'all');
     }
 }
 
@@ -1432,9 +1502,7 @@ async function loadLabGrid() {
 
         // Build room list from schedule data so all rooms with schedules get a box (including AI32, MT12, etc.)
         const roomOrder = [
-            'COMLAB1', 'COMLAB2', 'COMLAB3', 'COMLAB4',
-            'COMLAB5 (CON 103)', 'COMLAB6 (CON 104)', 'COMLAB7 (CON 105)',
-            'CHS (CON 101)', 'CISCO (CON 102)'
+
         ];
 
         // Use all rooms from DB plus any that might only arbitrarily exist in schedules
@@ -1699,13 +1767,25 @@ function handleFilterChange() {
     const roomFilter = document.getElementById('roomFilter');
     const customDropdown = document.getElementById('roomFilterDropdown');
 
-    // Toggle class for selected state styling
+    const teacherFilter = document.getElementById('teacherSelectFilter');
+    const teacherDropdown = document.getElementById('teacherFilterDropdown');
+
+    // Toggle class for selected state styling for rooms
     if (roomFilter && roomFilter.value !== 'all') {
         roomFilter.classList.add('has-selection');
         if (customDropdown) customDropdown.classList.add('has-selection');
     } else if (roomFilter) {
         roomFilter.classList.remove('has-selection');
         if (customDropdown) customDropdown.classList.remove('has-selection');
+    }
+
+    // Toggle class for selected state styling for teachers
+    if (teacherFilter && teacherFilter.value !== 'all') {
+        teacherFilter.classList.add('has-selection');
+        if (teacherDropdown) teacherDropdown.classList.add('has-selection');
+    } else if (teacherFilter) {
+        teacherFilter.classList.remove('has-selection');
+        if (teacherDropdown) teacherDropdown.classList.remove('has-selection');
     }
 
     const visualFilter = document.getElementById('scheduleVisualFilter');
@@ -1749,8 +1829,10 @@ function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', text
     if (hiddenSelect) {
         hiddenSelect.value = value;
         // Trigger the original filter change
-        if (selectId === 'roomFilter') {
+        if (selectId === 'roomFilter' || selectId === 'teacherSelectFilter') {
             handleFilterChange();
+        } else if (selectId === 'teacherStatusFilter') {
+            loadTeacherManagementTable();
         } else {
             renderSchedulesVisualGrid();
         }
@@ -1787,10 +1869,14 @@ async function loadTeacherGrid() {
     if (!grid) return;
 
     try {
-        const res = await fetch('/api/teacher_schedule');
-        const groupedSchedules = await res.json();
+        const [scheduleRes, facultyRes] = await Promise.all([
+            fetch('/api/teacher_schedule'),
+            fetch('/api/faculty')
+        ]);
+        const groupedSchedules = await scheduleRes.json();
+        const facultyList = await facultyRes.json();
 
-        const rawNames = Object.keys(groupedSchedules);
+        const rawSchedNames = Object.keys(groupedSchedules);
 
         // Helper: display label for teacher in UI
         const getTeacherLabel = (name) => {
@@ -1798,23 +1884,46 @@ async function loadTeacherGrid() {
             return name;
         };
 
-        // Custom ordering: Almenario, Amago, Apolinar first; others follow alphabetically
-        const priorityOrder = ['Almenario', 'Amago', 'APOLINAR'];
-        const priorityPresent = priorityOrder.filter(n => rawNames.includes(n));
-        const otherNames = rawNames.filter(n => !priorityOrder.includes(n)).sort();
-        const orderedNames = [...priorityPresent, ...otherNames];
+        // Populate dropdown if empty (except "All")
+        if (teacherFilter && (teacherFilter.options.length <= 1 || !document.getElementById('teacherDropdownOptions')?.innerHTML)) {
+            const teacherOptionsDiv = document.getElementById('teacherDropdownOptions');
+            const currentVal = teacherFilter.value || 'all';
 
-        // Populate filter if empty (except "All")
-        if (teacherFilter && teacherFilter.options.length <= 1) {
-            orderedNames.forEach(name => {
+            teacherFilter.innerHTML = '<option value="all">All Teacher</option>';
+            let optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Teacher', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">All Teacher</div>`;
+
+            // Sort all teachers from faculty list
+            facultyList.sort((a, b) => a.name.localeCompare(b.name));
+
+            facultyList.forEach(teacher => {
                 const opt = document.createElement('option');
-                opt.value = name;
-                opt.textContent = getTeacherLabel(name);
+                opt.value = teacher.name;
+                opt.textContent = getTeacherLabel(teacher.name);
                 teacherFilter.appendChild(opt);
+
+                optionsHtml += `<div class="custom-option ${currentVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}" onclick="selectCustomOption('${teacher.name}', '${getTeacherLabel(teacher.name)}', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">${getTeacherLabel(teacher.name)}</div>`;
             });
+
+            if (teacherOptionsDiv) teacherOptionsDiv.innerHTML = optionsHtml;
+
+            // Sync visible text
+            const selectedTeacherText = document.getElementById('selectedTeacherText');
+            if (selectedTeacherText) {
+                if (currentVal === 'all') {
+                    selectedTeacherText.textContent = 'All Teacher';
+                } else {
+                    selectedTeacherText.textContent = getTeacherLabel(currentVal);
+                }
+            }
         }
 
         const selectedTeacher = teacherFilter?.value || 'all';
+
+        // Order names for the table view
+        const priorityOrder = ['Almenario', 'Amago', 'APOLINAR'];
+        const priorityPresent = priorityOrder.filter(n => rawSchedNames.includes(n));
+        const otherNames = rawSchedNames.filter(n => !priorityOrder.includes(n)).sort();
+        const orderedNames = [...priorityPresent, ...otherNames];
 
         grid.innerHTML = `
             <table class="teacher-table">
@@ -2219,11 +2328,11 @@ async function populateRoomDropdowns() {
 
         if (visualFilter) {
             const currentVisualVal = visualFilter.value;
-            visualFilter.innerHTML = '<option value="all">All schedule</option>';
+            visualFilter.innerHTML = '<option value="all">All Schedule</option>';
 
             // Custom dropdown support for schedules page
             const visualOptionsDiv = document.getElementById('visualRoomOptions');
-            let visualOptionsHtml = `<div class="custom-option ${currentVisualVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All schedule', 'scheduleVisualFilterDropdown', 'selectedVisualRoomText', 'scheduleVisualFilter')">All schedule</div>`;
+            let visualOptionsHtml = `<div class="custom-option ${currentVisualVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Schedule', 'scheduleVisualFilterDropdown', 'selectedVisualRoomText', 'scheduleVisualFilter')">All Schedule</div>`;
 
             rooms.forEach(room => {
                 visualFilter.innerHTML += `<option value="${room.name}">${room.name}</option>`;
@@ -2240,7 +2349,7 @@ async function populateRoomDropdowns() {
             if (selectedVisualText && visualFilter.value !== 'all') {
                 selectedVisualText.textContent = visualFilter.value;
             } else if (selectedVisualText) {
-                selectedVisualText.textContent = 'All schedule';
+                selectedVisualText.textContent = 'All Schedule';
             }
         }
 

@@ -33,11 +33,11 @@
 
         <!-- Modals that are shared across different views -->
         <div id="modalOverlay"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center;">
+            style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 5000; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
             <div class="glass-card"
-                style="width: 100%; max-width: 440px; padding: 1.8rem; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                style="width: 100%; max-width: 440px; padding: 2rem; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);">
                 <h3 id="modalTitle"
-                    style="margin-bottom: 1rem; color: #00008B; font-family: 'Playfair Display', serif; font-size: 1.4rem; text-align: center; text-transform: uppercase; font-weight: 800;">
+                    style="margin-bottom: 1rem; color: #fbbf24; font-family: 'Playfair Display', serif; font-size: 1.4rem; text-align: center; text-transform: uppercase; font-weight: 800;">
                     Add New</h3>
                 <div id="modalError"
                     style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 8px; background-color: #fee2e2; border: 1px solid #f87171; color: #b91c1c; font-size: 0.85rem; font-weight: 600;">
@@ -50,11 +50,7 @@
                             onclick="closeModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary"
                             style="background: #fbbf24; color: #000; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            Save Changes
+                            Save
                         </button>
                     </div>
                 </form>
@@ -63,7 +59,7 @@
 
         <!-- Lab Schedule Modal -->
         <div id="labModal"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 2000; justify-content: center; align-items: center;">
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 5100; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
             <div class="glass-card"
                 style="width: 90%; max-width: 1000px; max-height: 80vh; overflow-y: auto; padding: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -77,11 +73,11 @@
 
         <!-- Subject Modal (Add/Edit Subject with Room Assignment) -->
         <div id="subjectModalOverlay"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 2500; justify-content: center; align-items: center;">
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 5200; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
             <div class="glass-card"
-                style="width: 100%; max-width: 480px; padding: 2.2rem; border: 1px solid #e2e8f0; border-radius: 12px;">
+                style="width: 100%; max-width: 480px; padding: 2.2rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;">
                 <h3 id="subjectModalTitle"
-                    style="margin-bottom: 1.8rem; color: #1e1b4b; font-family: 'Playfair Display', serif; font-size: 1.6rem; text-align: center;">
+                    style="margin-bottom: 1.8rem; color: #fbbf24; font-family: 'Playfair Display', serif; font-size: 1.6rem; text-align: center;">
                     Add New Subject</h3>
                 <div id="subjectError"
                     style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 8px; background-color: #fee2e2; border: 1px solid #f87171; color: #b91c1c; font-size: 0.85rem; font-weight: 600;">
@@ -97,23 +93,13 @@
                         <input type="text" id="sm_name" required placeholder="e.g. Programming 1"
                             style="font-family: 'Inter', sans-serif;">
                     </div>
-                    <div class="form-group">
-                        <label>Units</label>
-                        <input type="number" id="sm_units" value="3" required style="font-family: 'Inter', sans-serif;">
-                    </div>
-                    <div class="form-group">
-                        <label>Assign Room (Optional)</label>
-                        <select id="sm_room" style="font-family: 'Inter', sans-serif;">
-                            <option value="">-- No Room --</option>
-                        </select>
-                    </div>
+
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
                         <button type="button" class="btn"
                             style="background: #f1f5f9; color: #475569; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 600; border: none; cursor: pointer;"
                             onclick="closeSubjectModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary"
-                            style="background: #1e1b4b; color: white; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save
-                            Changes</button>
+                            style="background: #fbbf24; color: #000; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save</button>
                     </div>
                 </form>
             </div>
@@ -121,11 +107,11 @@
 
         <!-- Add Room Modal -->
         <div id="roomModalOverlay"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 2500; justify-content: center; align-items: center;">
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 5200; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
             <div class="glass-card"
-                style="width: 100%; max-width: 450px; padding: 2.2rem; border: 1px solid #e2e8f0; border-radius: 12px;">
+                style="width: 100%; max-width: 450px; padding: 2.2rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;">
                 <h3 id="roomModalTitle"
-                    style="margin-bottom: 1.8rem; color: #1e1b4b; font-family: 'Playfair Display', serif; font-size: 1.6rem; text-align: center;">
+                    style="margin-bottom: 1.8rem; color: #fbbf24; font-family: 'Playfair Display', serif; font-size: 1.6rem; text-align: center;">
                     Room Management</h3>
                 <div id="roomError"
                     style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 8px; background-color: #fee2e2; border: 1px solid #f87171; color: #b91c1c; font-size: 0.85rem; font-weight: 600;">
@@ -150,8 +136,7 @@
                             style="background: #f1f5f9; color: #475569; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 600; border: none; cursor: pointer;"
                             onclick="closeRoomModal()">Cancel</button>
                         <button type="submit" class="btn btn-primary"
-                            style="background: #1e1b4b; color: white; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save
-                            Changes</button>
+                            style="background: #fbbf24; color: #000; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save</button>
                     </div>
                 </form>
             </div>
