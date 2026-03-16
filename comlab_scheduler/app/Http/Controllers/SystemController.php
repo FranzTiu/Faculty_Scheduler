@@ -10,6 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Schedule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class SystemController extends Controller
 {
@@ -25,13 +26,33 @@ class SystemController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->only('username', 'password');
+        $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
             return response()->json(["success" => true, "user" => ["username" => Auth::user()->username]]);
         }
 
         return response()->json(["success" => false, "message" => "Invalid username or password"]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = User::where('username', $request->username)->first();
+
+        if (!$user) {
+            return response()->json(["success" => false, "message" => "Username not found"]);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json(["success" => true, "message" => "Password has been reset successfully"]);
     }
 
     public function logout(Request $request)

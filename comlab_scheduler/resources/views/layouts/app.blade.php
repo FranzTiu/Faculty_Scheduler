@@ -45,13 +45,8 @@
                 <form id="modalForm">
                     <div id="modalFields"></div>
                     <div style="display: flex; gap: 0.8rem; margin-top: 1.5rem; justify-content: center;">
-                        <button type="button" class="btn"
-                            style="background: #f1f5f9; color: #475569; padding: 0.6rem 1.8rem; border-radius: 50px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer;"
-                            onclick="closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary"
-                            style="background: #fbbf24; color: #000; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                            Save
-                        </button>
+                        <button type="button" class="btn-modal btn-modal-cancel" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn-modal btn-modal-save">Save</button>
                     </div>
                 </form>
             </div>
@@ -95,11 +90,8 @@
                     </div>
 
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
-                        <button type="button" class="btn"
-                            style="background: #f1f5f9; color: #475569; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 600; border: none; cursor: pointer;"
-                            onclick="closeSubjectModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary"
-                            style="background: #fbbf24; color: #000; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save</button>
+                        <button type="button" class="btn-modal btn-modal-cancel" onclick="closeSubjectModal()">Cancel</button>
+                        <button type="submit" class="btn-modal btn-modal-save">Save</button>
                     </div>
                 </form>
             </div>
@@ -132,11 +124,8 @@
                         </select>
                     </div>
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
-                        <button type="button" class="btn"
-                            style="background: #f1f5f9; color: #475569; padding: 0.6rem 2rem; border-radius: 50px; font-weight: 600; border: none; cursor: pointer;"
-                            onclick="closeRoomModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary"
-                            style="background: #fbbf24; color: #000; padding: 0.6rem 2.5rem; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;">Save</button>
+                        <button type="button" class="btn-modal btn-modal-cancel" onclick="closeRoomModal()">Cancel</button>
+                        <button type="submit" class="btn-modal btn-modal-save">Save</button>
                     </div>
                 </form>
             </div>

@@ -58,7 +58,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: url('../ellenyu 2.png') no-repeat center center fixed;
+    background: url('../LNU.jfif') no-repeat center center fixed;
     background-size: cover;
     position: relative;
     overflow-x: hidden;
@@ -106,7 +106,7 @@ body.logged-out #dashboardPage {
 .login-card {
     display: flex;
     width: 900px;
-    height: 500px;
+    height: 650px;
     background: white;
     border-radius: 12px;
     overflow: hidden;
@@ -115,7 +115,7 @@ body.logged-out #dashboardPage {
 
 .login-left {
     flex: 1;
-    background: url('../ellenyu 2.png') no-repeat center center;
+    background: url('../LNU.jfif') no-repeat center center;
     background-size: cover;
     position: relative;
     display: flex;
@@ -159,7 +159,7 @@ body.logged-out #dashboardPage {
 .login-right {
     flex: 1;
     background: white;
-    padding: 3rem;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -167,22 +167,80 @@ body.logged-out #dashboardPage {
 
 .login-right h1 {
     font-family: 'Playfair Display', serif;
-    font-size: 2.8rem;
-    color: #111827;
-    margin-bottom: 2rem;
+    color: #fbbf24;
     font-weight: 800;
+}
+
+/* Password Toggle & Links */
+.password-toggle-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.3s;
+    z-index: 10;
+}
+
+.password-toggle-icon:hover {
+    color: #1e1b4b;
+}
+
+.forgot-link {
+    color: #1e1b4b;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none !important;
+}
+
+.forgot-link:hover {
+    color: #fbbf24;
+    text-decoration: none !important;
+}
+
+.back-to-login {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e1b4b;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.back-to-login:hover {
+    color: #fbbf24;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.auth-section-animate {
+    animation: fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Login page specific form overrides */
 .login-right .form-group {
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.4rem;
 }
 
 .login-right .form-group label {
     display: block;
     font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.5rem;
+    color: #1e1b4b;
+    margin-bottom: 0.3rem;
     font-size: 0.95rem;
 }
 
@@ -201,6 +259,29 @@ body.logged-out #dashboardPage {
 .login-right .form-group input:focus {
     border-color: #fbbf24;
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+}
+
+.login-right .form-group input.input-error {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2;
+}
+
+.login-right .form-group input.input-success {
+    border-color: #10b981 !important;
+    background-color: #ecfdf5;
+}
+
+.success-alert {
+    background-color: #ecfdf5;
+    border: 1px solid #10b981;
+    color: #065f46;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 1rem;
+    animation: fadeInScale 0.4s ease-out forwards;
 }
 
 .remember-me {
@@ -1047,7 +1128,7 @@ body.logged-out #dashboardPage {
 
 /* Hero Section */
 .hero-banner {
-    background: url('../ellenyu 2.png') no-repeat center center;
+    background: url('../LNU.jfif') no-repeat center center;
     background-size: cover;
     height: 400px;
     position: relative;
@@ -1534,11 +1615,6 @@ body.logged-out #dashboardPage {
     font-size: 0.9rem;
     font-weight: 600;
     color: #1e1b4b;
-    text-transform: capitalize;
-}
-
-.schedule-slot {
-    text-transform: capitalize;
 }
 
 /* Data Sections */
@@ -1547,16 +1623,6 @@ body.logged-out #dashboardPage {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-}
-
-.btn {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px rgba(30, 27, 75, 0.15);
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(30, 27, 75, 0.25);
 }
 
 .btn-primary {
@@ -1575,6 +1641,47 @@ body.logged-out #dashboardPage {
     background: #312e81;
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(30, 27, 75, 0.25);
+}
+
+.btn-modal {
+    padding: 0.6rem 2.5rem !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    border-radius: 50px !important;
+    border: none !important;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+}
+
+.btn-modal:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-modal-cancel {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+}
+
+.btn-modal-cancel:hover {
+    background: #e2e8f0 !important;
+    color: #1e1b4b !important;
+}
+
+.btn-modal-save {
+    background: #fbbf24 !important;
+    color: #1e1b4b !important;
+}
+
+.btn-modal-save:hover {
+    background: #f59e0b !important;
+    box-shadow: 0 6px 12px rgba(251, 191, 36, 0.3) !important;
 }
 
 table {
@@ -1779,8 +1886,8 @@ th {
 }
 
 .teacher-table .subject-cell {
-    text-align: left !important;
-    padding-left: 1.5rem !important;
+    text-align: center !important;
+    padding-left: 0 !important;
 }
 
 .teacher-table .section-cell {
@@ -1934,9 +2041,9 @@ th {
 .data-table .subject-name-cell {
     text-align: center !important;
     vertical-align: middle !important;
-    text-transform: capitalize;
 }
 
+.teacher-manage-table th:nth-child(1),
 .teacher-manage-table .teacher-name-cell {
     width: 15%;
     font-family: 'Playfair Display', serif;
@@ -1944,10 +2051,7 @@ th {
     color: #1e1b4b;
 }
 
-.teacher-manage-table th:nth-child(1) {
-    width: 15%;
-}
-
+.teacher-manage-table th:nth-child(2),
 .teacher-manage-table .status-cell {
     width: 12%;
     font-family: 'Playfair Display', serif;
@@ -1955,45 +2059,27 @@ th {
     color: #1e1b4b;
 }
 
-.teacher-manage-table th:nth-child(2) {
-    width: 12%;
-}
-
+.teacher-manage-table th:nth-child(3),
 .teacher-manage-table .subject-cell {
     width: 50%;
     text-align: center !important;
+    padding-left: 0 !important;
     font-weight: 700;
     color: #1e1b4b;
-    text-transform: capitalize;
 }
 
-.teacher-manage-table th:nth-child(3) {
-    width: 50%;
-    text-align: center !important;
-}
-
+.teacher-manage-table th:nth-child(4),
 .teacher-manage-table .section-cell {
     width: 13%;
     text-align: left !important;
     padding-left: 1rem !important;
     font-weight: 700;
     color: #1e1b4b;
-    text-transform: capitalize;
 }
 
-.teacher-manage-table th:nth-child(4) {
-    width: 13%;
-    text-align: center !important;
-    padding-left: 1rem !important;
-}
-
+.teacher-manage-table th:nth-child(5),
 .teacher-manage-table .action-cell,
 .data-table td.action-cell {
-    width: 10%;
-    text-align: center !important;
-}
-
-.teacher-manage-table th:nth-child(5) {
     width: 10%;
     text-align: center !important;
 }
@@ -2001,7 +2087,6 @@ th {
 .teacher-manage-table td {
     padding: 0.5rem 0.8rem !important;
     vertical-align: middle !important;
-    text-transform: capitalize;
 }
 
 .teacher-manage-table thead th:last-child {
@@ -2043,15 +2128,17 @@ th {
     padding: 1rem 0.5rem !important;
 }
 
+#scheduleCombinedTable th:nth-child(1) {
+    width: 45% !important;
+    font-weight: 900 !important;
+    color: white !important;
+}
+
 #scheduleCombinedTable td:nth-child(1) {
     width: 45% !important;
     font-weight: 900 !important;
     /* Bold as per image */
     color: #1e1b4b !important;
-}
-
-#scheduleCombinedTable th:nth-child(1) {
-    width: 45% !important;
 }
 
 #scheduleCombinedTable th:nth-child(2),

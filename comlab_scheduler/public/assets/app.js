@@ -22,22 +22,272 @@ async function checkAuth() {
 // Login
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const uInput = document.getElementById('username');
+    const pInput = document.getElementById('password');
+    const uValue = uInput.value.trim();
+    const pValue = pInput.value.trim();
+    
+    const err = document.getElementById('loginError');
+    const uErr = document.getElementById('usernameError');
+    const pErr = document.getElementById('passwordError');
 
-    const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-        body: JSON.stringify({ username, password })
-    });
+    // Reset errors
+    err.classList.add('hidden');
+    uErr.classList.add('hidden');
+    pErr.classList.add('hidden');
+    uInput.classList.remove('input-error');
+    pInput.classList.remove('input-error');
 
-    const data = await res.json();
-    if (data.success) {
-        window.location.href = '/';
+    // Client-side quick check
+    let hasError = false;
+    if (!uValue) {
+        uErr.textContent = "Username is required";
+        uErr.classList.remove('hidden');
+        uInput.classList.add('input-error');
+        hasError = true;
+    }
+    if (!pValue) {
+        pErr.textContent = "Password is required";
+        pErr.classList.remove('hidden');
+        pInput.classList.add('input-error');
+        hasError = true;
+    }
+    if (hasError) return;
+
+    try {
+        const rememberCheckbox = document.getElementById('remember');
+        const rValue = rememberCheckbox ? rememberCheckbox.checked : false;
+
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ username: uValue, password: pValue, remember: rValue })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = '/';
+        } else {
+            if (res.status === 422 && data.errors) {
+                if (data.errors.password) {
+                    pErr.textContent = data.errors.password[0];
+                    pErr.classList.remove('hidden');
+                    pInput.classList.add('input-error');
+                }
+                if (data.errors.username) {
+                    uErr.textContent = data.errors.username[0];
+                    uErr.classList.remove('hidden');
+                    uInput.classList.add('input-error');
+                }
+            } else {
+                // If the message contains both or is a generic credential error, show it under password
+                if (data.message && (data.message.toLowerCase().includes('password') || data.message.toLowerCase().includes('username'))) {
+                    pErr.textContent = data.message;
+                    pErr.classList.remove('hidden');
+                    pInput.classList.add('input-error');
+                    uInput.classList.add('input-error'); // Still turn both red as feedback
+                } else {
+                    err.textContent = data.message || "Invalid credentials";
+                    err.classList.remove('hidden');
+                    uInput.classList.add('input-error');
+                    pInput.classList.add('input-error');
+                    
+                    setTimeout(() => {
+                        err.classList.add('hidden');
+                    }, 2000);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Login failed", e);
+        err.textContent = "An error occurred. Please try again.";
+        err.classList.remove('hidden');
+    }
+});
+
+// Password Visibility Toggle
+document.getElementById('passwordToggle')?.addEventListener('click', function () {
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        // Eye Open Icon
+        eyeIcon.innerHTML = `<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/>`;
     } else {
-        const err = document.getElementById('loginError');
-        err.textContent = data.message;
-        err.style.display = 'block';
+        passwordInput.type = 'password';
+        // Eye Closed Icon
+        eyeIcon.innerHTML = `<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>`;
+    }
+});
+
+// Toggle Forgot Password Section
+document.getElementById('forgotPasswordBtn')?.addEventListener('click', () => {
+    const loginSec = document.getElementById('loginSection');
+    const forgotSec = document.getElementById('forgotPasswordSection');
+    
+    loginSec?.classList.add('hidden');
+    forgotSec?.classList.remove('hidden');
+    forgotSec?.classList.remove('auth-section-animate');
+    void forgotSec.offsetWidth; // Trigger reflow
+    forgotSec?.classList.add('auth-section-animate');
+});
+
+document.getElementById('backToLogin')?.addEventListener('click', () => {
+    const loginSec = document.getElementById('loginSection');
+    const forgotSec = document.getElementById('forgotPasswordSection');
+
+    forgotSec?.classList.add('hidden');
+    loginSec?.classList.remove('hidden');
+    loginSec?.classList.remove('auth-section-animate');
+    void loginSec.offsetWidth; // Trigger reflow
+    loginSec?.classList.add('auth-section-animate');
+});
+
+// Forgot Password Form Logic
+document.getElementById('forgotPasswordForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uInput = document.getElementById('resetUsername');
+    const pInput = document.getElementById('resetPassword');
+    const cInput = document.getElementById('resetPassword_confirmation');
+    
+    const uValue = uInput.value.trim();
+    const pValue = pInput.value.trim();
+    const cValue = cInput.value.trim();
+    
+    const err = document.getElementById('forgotError');
+    const success = document.getElementById('forgotSuccess');
+    
+    // Field error placeholders
+    const uErr = document.getElementById('resetUsernameError');
+    const pErr = document.getElementById('resetPasswordError');
+    const cErr = document.getElementById('resetPassword_confirmationError');
+
+    // Reset errors & indicators
+    err.style.display = 'none';
+    success.style.display = 'none';
+    
+    [uErr, pErr, cErr].forEach(el => el.classList.add('hidden'));
+    [uInput, pInput, cInput].forEach(el => el.classList.remove('input-error'));
+
+    // Client-side quick check
+    let hasError = false;
+    if (!uValue) {
+        uErr.textContent = "Username is required";
+        uErr.classList.remove('hidden');
+        uInput.classList.add('input-error');
+        hasError = true;
+    }
+    if (!pValue) {
+        pErr.textContent = "New password is required";
+        pErr.classList.remove('hidden');
+        pInput.classList.add('input-error');
+        hasError = true;
+    } else if (pValue.length < 6) {
+        pErr.textContent = "Password must be at least 6 characters";
+        pErr.classList.remove('hidden');
+        pInput.classList.add('input-error');
+        hasError = true;
+    }
+    
+    if (pValue !== cValue) {
+        cErr.textContent = "Passwords do not match!";
+        cErr.classList.remove('hidden');
+        cInput.classList.add('input-error');
+        hasError = true;
+    }
+    
+    if (hasError) return;
+
+    try {
+        const res = await fetch('/reset-password', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                username: uValue, 
+                password: pValue, 
+                password_confirmation: cValue 
+            })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+            // Show fields in green for a second before switching
+            [uInput, pInput, cInput].forEach(el => el.classList.add('input-success'));
+
+            // Redirect back to login after short delay
+            setTimeout(() => {
+                const loginSec = document.getElementById('loginSection');
+                const forgotSec = document.getElementById('forgotPasswordSection');
+                const postResetMsg = document.getElementById('loginPostResetSuccess');
+
+                forgotSec?.classList.add('hidden');
+                loginSec?.classList.remove('hidden');
+                loginSec?.classList.remove('auth-section-animate');
+                void loginSec.offsetWidth; 
+                loginSec?.classList.add('auth-section-animate');
+                
+                // Show success message on the LOGIN form
+                postResetMsg?.classList.remove('hidden');
+                
+                // Hide post-reset success after 2 seconds
+                setTimeout(() => {
+                    postResetMsg?.classList.add('hidden');
+                }, 2000);
+                
+                // Cleanup inputs
+                [uInput, pInput, cInput].forEach(el => {
+                    el.value = '';
+                    el.classList.remove('input-success');
+                });
+            }, 1000);
+        } else {
+            // Handle Laravel validation errors specifically
+            if (res.status === 422 && data.errors) {
+                if (data.errors.username) {
+                    uErr.textContent = data.errors.username[0];
+                    uErr.classList.remove('hidden');
+                    uInput.classList.add('input-error');
+                }
+                if (data.errors.password) {
+                    pErr.textContent = data.errors.password[0];
+                    pErr.classList.remove('hidden');
+                    pInput.classList.add('input-error');
+                }
+                if (data.errors.password_confirmation) {
+                    cErr.textContent = data.errors.password_confirmation[0];
+                    cErr.classList.remove('hidden');
+                    cInput.classList.add('input-error');
+                }
+            } else {
+                if (data.message && data.message.toLowerCase().includes('username')) {
+                    uErr.textContent = data.message;
+                    uErr.classList.remove('hidden');
+                    uInput.classList.add('input-error');
+                } else {
+                    err.textContent = data.message || "Failed to reset password.";
+                    err.classList.remove('hidden');
+                    
+                    // Hide error after 2 seconds
+                    setTimeout(() => {
+                        err.classList.add('hidden');
+                    }, 2000);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Reset password failed", error);
+        err.textContent = "An error occurred. Please try again.";
+        err.classList.remove('hidden');
     }
 });
 
