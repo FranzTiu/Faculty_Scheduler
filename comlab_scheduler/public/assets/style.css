@@ -193,11 +193,37 @@ body.logged-out #dashboardPage {
     font-weight: 700;
     transition: all 0.2s ease-in-out;
     text-decoration: none !important;
+    position: relative;
+    display: inline-block;
+}
+
+.forgot-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #fbbf24;
+    transition: width 0.25s ease-in-out;
+    border-radius: 2px;
+}
+
+.forgot-link:hover::after {
+    width: 100%;
 }
 
 .forgot-link:hover {
-    color: #fbbf24;
-    text-decoration: none !important;
+    color: #1e1b4b;
+}
+
+/* Ensure hidden inputs (like CSRF) are never visible */
+input[type="hidden"] {
+    display: none !important;
+}
+
+.back-to-login-btn {
+    color: #000000 !important;
 }
 
 .back-to-login {
@@ -221,6 +247,7 @@ body.logged-out #dashboardPage {
         opacity: 0;
         transform: scale(0.96) translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -315,16 +342,17 @@ body.logged-out #dashboardPage {
 }
 
 .remember-me .forgot-link {
-    color: #374151;
-    font-weight: 600;
+    color: #1e1b4b;
+    font-weight: 700;
     font-size: 0.85rem;
-    text-decoration: none;
+    text-decoration: none !important;
     cursor: pointer;
+    position: relative;
+    display: inline-block;
 }
 
 .remember-me .forgot-link:hover {
     color: #1e1b4b;
-    text-decoration: underline;
 }
 
 .btn-login {
@@ -1895,6 +1923,11 @@ th {
     padding-left: 1.5rem !important;
 }
 
+.teacher-table .section-cell {
+    text-align: left !important;
+    padding-left: 1.5rem !important;
+}
+
 .teacher-table .view-btn-cell {
     background: #ffffff !important;
     text-align: center;
@@ -1930,6 +1963,8 @@ th {
     box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
 }
 
+
+
 .employment-select {
     background: #1e1b4b;
     color: #f9fafb;
@@ -1941,10 +1976,6 @@ th {
     cursor: pointer;
 }
 
-.teacher-table .view-btn:hover {
-    /* No hover effects; keep solid yellow icon */
-    background-color: #fbbf24;
-}
 
 /* Custom Select Styling - Oval Dropdown */
 .teacher-filter-container {

@@ -61,10 +61,11 @@
             <div id="forgotPasswordSection" class="hidden">
                 <form id="forgotPasswordForm" class="flex flex-col gap-3">
                     <h1
-                        class="text-3xl font-bold text-[#fbbf24] mb-1 font-['Playfair_Display'] uppercase whitespace-nowrap">
+                        class="text-3xl font-bold text-[#1e1b4b] mb-1 font-['Playfair_Display'] uppercase whitespace-nowrap">
                         FORGOT PASSWORD</h1>
-                    <p class="text-[#1e1b4b] text-xs mb-1 leading-tight font-medium">Reset your password by entering your username and
-                        new password.</p>
+                    <p class="text-[#1e1b4b] text-xs mb-3 leading-tight font-medium">Reset your password by entering your username <br> and 
+                        new password. <br/> 
+                    </p>
                     <div class="form-group flex flex-col">
                         <label class="mb-0.5 text-sm font-bold text-[#1e1b4b]">Username</label>
                         <input type="text" id="resetUsername" required placeholder="Enter your username"
@@ -84,7 +85,7 @@
                         <p id="resetPassword_confirmationError" class="text-red-500 text-xs mt-0.5 font-bold hidden"></p>
                     </div>
                     <button type="submit" class="toggle-btn active !w-full !max-w-none !mt-2 !py-3 !px-6 !text-[15px] md:!text-lg !font-extrabold !rounded-full transition-all duration-300">Reset Password</button>
-                    <x-button type="button" variant="secondary" id="backToLogin" class="w-full !py-3 !px-6 !text-[15px] !font-bold !rounded-full hover:!shadow-lg hover:!-translate-y-0.5 transition-all duration-200 ease-in-out">Back to Login</x-button>
+                    <x-button type="button" variant="secondary" id="backToLogin" class="w-full !py-3 !px-6 !text-[15px] md:!text-lg !font-extrabold !font-['Playfair_Display'] back-to-login-btn !rounded-full hover:!shadow-lg hover:!-translate-y-0.5 transition-all duration-200 ease-in-out">Back to Login</x-button>
                     <p id="forgotError" class="text-red-500 text-xs mt-1 text-center font-bold hidden"></p>
                     <p id="forgotSuccess" class="text-green-600 text-xs mt-2 text-center font-bold hidden"></p>
                 </form>

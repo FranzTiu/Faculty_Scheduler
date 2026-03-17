@@ -1245,12 +1245,11 @@ function toggleHomeView(view) {
     const hero = document.querySelector('.hero-banner');
 
     if (view === 'schedules') {
-        // Keep hero visible to maintain layout stability
         if (hero) hero.style.display = 'block';
-        if (comlabGrid) comlabGrid.style.display = 'grid';
-        if (teacherGrid) teacherGrid.style.display = 'none';
-        if (teacherFilter) teacherFilter.style.display = 'none';
-        if (filterSection) filterSection.style.display = 'flex';
+        if (comlabGrid) comlabGrid.classList.remove('hidden');
+        if (teacherGrid) teacherGrid.classList.add('hidden');
+        if (teacherFilter) teacherFilter.classList.add('hidden');
+        if (filterSection) filterSection.classList.remove('hidden');
 
         if (toggleSchedules) {
             toggleSchedules.classList.add('active');
@@ -1262,12 +1261,11 @@ function toggleHomeView(view) {
         }
         loadLabGrid();
     } else {
-        // Keep hero visible to maintain layout stability
         if (hero) hero.style.display = 'block';
-        if (comlabGrid) comlabGrid.style.display = 'none';
-        if (teacherGrid) teacherGrid.style.display = 'block';
-        if (teacherFilter) teacherFilter.style.display = 'flex';
-        if (filterSection) filterSection.style.display = 'none';
+        if (comlabGrid) comlabGrid.classList.add('hidden');
+        if (teacherGrid) teacherGrid.classList.remove('hidden');
+        if (teacherFilter) teacherFilter.classList.remove('hidden');
+        if (filterSection) filterSection.classList.add('hidden');
 
         if (toggleTeachers) {
             toggleTeachers.classList.add('active');
