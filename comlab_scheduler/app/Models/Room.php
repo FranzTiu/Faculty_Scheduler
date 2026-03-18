@@ -11,10 +11,15 @@ class Room extends Model
 
     protected $table = 'rooms';
     protected $primaryKey = 'id';
-    protected $fillable = ['room_name', 'campus'];
+    protected $fillable = ['semester_id', 'room_name', 'campus'];
 
     public function schedules()
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
     }
 }

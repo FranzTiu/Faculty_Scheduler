@@ -11,10 +11,15 @@ class Subject extends Model
 
     protected $table = 'subjects';
     protected $primaryKey = 'id';
-    protected $fillable = ['subject_code', 'subject_name'];
+    protected $fillable = ['semester_id', 'subject_code', 'subject_name', 'year_level'];
 
     public function schedules()
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
     }
 }

@@ -21,12 +21,12 @@
 
     @if(auth()->check())
         <div id="dashboardPage"
-            class="dashboard-container w-full overflow-x-hidden flex flex-col min-h-screen bg-slate-50 pt-[80px]">
+            class="dashboard-container w-full overflow-x-hidden flex flex-col min-h-screen bg-slate-50">
             @include('components.navbar')
 
             @yield('hero')
 
-            <main id="mainContent" class="flex-grow w-full py-4 md:py-8 transition-all duration-300">
+            <main id="mainContent" class="flex-grow w-full pt-[80px] pb-4 md:pb-8 transition-all duration-300">
                 @yield('content')
             </main>
         </div>
@@ -87,6 +87,16 @@
                         <label>Subject Name</label>
                         <input type="text" id="sm_name" required placeholder="e.g. Programming 1"
                             style="font-family: 'Inter', sans-serif;">
+                    </div>
+                    <div class="form-group">
+                        <label>Year Level</label>
+                        <select id="sm_year_level" style="font-family: 'Inter', sans-serif;">
+                            <option value="">All / Not Set</option>
+                            <option value="1">First Year</option>
+                            <option value="2">Second Year</option>
+                            <option value="3">Third Year</option>
+                            <option value="4">Fourth Year</option>
+                        </select>
                     </div>
 
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
@@ -150,6 +160,47 @@
                     <button type="button" class="btn-modal btn-modal-cancel" style="min-width: 120px;" onclick="closeDeleteModal()">Cancel</button>
                     <button type="button" class="btn-modal btn-modal-save" style="min-width: 120px; background: #dc2626; border-color: #dc2626;" onclick="confirmDelete()">Delete</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Add Semester Modal -->
+        <div id="semesterModalOverlay"
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 5200; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
+            <div class="glass-card"
+                style="width: 100%; max-width: 520px; padding: 2.2rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;">
+                <h3
+                    style="margin-bottom: 1.2rem; color: #fbbf24; font-family: 'Playfair Display', serif; font-size: 1.6rem; text-align: center;">
+                    Add Semester</h3>
+                <div id="semesterError"
+                    style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 8px; background-color: #fee2e2; border: 1px solid #f87171; color: #b91c1c; font-size: 0.85rem; font-weight: 600;">
+                </div>
+                <form id="semesterForm">
+                    <div class="form-group">
+                        <label>Semester</label>
+                        <select id="sem_term" required style="font-family: 'Inter', sans-serif;">
+                            <option value="">Select Semester</option>
+                            <option value="1st">1st Semester</option>
+                            <option value="2nd">2nd Semester</option>
+                            <option value="Summer">Summer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>School Year</label>
+                        <input type="text" id="sem_sy" required placeholder="e.g. 2025-2026"
+                            style="font-family: 'Inter', sans-serif;">
+                    </div>
+                    <div class="form-group">
+                        <label>Use Default Curriculum</label>
+                        <select id="sem_default" required style="font-family: 'Inter', sans-serif;">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
+                        <button type="button" class="btn-modal btn-modal-cancel" onclick="closeAddSemesterModal()">Cancel</button>
+                        <button type="submit" class="btn-modal btn-modal-save">Save</button>
+                    </div>
+                </form>
             </div>
         </div>
     @else

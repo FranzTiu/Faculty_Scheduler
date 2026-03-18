@@ -1184,7 +1184,7 @@ input[type="hidden"] {
     z-index: 10;
     display: flex;
     gap: 1.5rem;
-    width: 70% !important;
+    width: 80% !important;
     /* <--- CHANGE WIDTH HERE */
     height: 170px !important;
     /* <--- CHANGE HEIGHT HERE */
@@ -1301,6 +1301,7 @@ input[type="hidden"] {
     text-transform: capitalize;
 }
 
+
 .content-section {
     display: none;
 }
@@ -1385,19 +1386,19 @@ input[type="hidden"] {
 }
 
 /* Custom Dropdown Styling */
+/* Consolidated Custom Dropdown Styling */
 .custom-dropdown {
     position: relative;
-    width: 240px;
-    max-width: 240px;
+    width: 240px !important;
+    max-width: 240px !important;
     font-family: 'Inter', sans-serif;
     z-index: 1001;
-    /* Above almost everything */
 }
 
 .custom-dropdown-selected {
     background: #1e1b4b !important;
     color: white !important;
-    padding: 0.6rem 1rem !important;
+    padding: 0.55rem 1rem !important;
     padding-right: 0.8rem !important;
     border-radius: 8px !important;
     font-weight: 700 !important;
@@ -1405,10 +1406,35 @@ input[type="hidden"] {
     font-size: 0.9rem !important;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end !important;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
     transition: all 0.3s ease;
-    min-height: 42px;
+    min-height: 40px;
+}
+
+.custom-dropdown-selected:hover {
+    background: #2d2a6e !important;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Removal of semester-pill as requested to match standard filter look */
+#heroSemesterDropdown .custom-dropdown-options,
+#semesterDropdown .custom-dropdown-options {
+    width: 100% !important;
+    min-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Selection Highlight (Yellow) - matches All Schedule behavior */
+.custom-dropdown.has-selection .custom-dropdown-selected,
+.custom-dropdown.open .custom-dropdown-selected {
+    color: #fbbf24 !important;
+}
+
+.custom-dropdown.has-selection .dropdown-icon,
+.custom-dropdown.open .dropdown-icon {
+    color: #fbbf24 !important;
 }
 
 .custom-dropdown-selected .dropdown-icon {
@@ -1448,7 +1474,7 @@ input[type="hidden"] {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.15s ease, opacity 0.12s ease, visibility 0s linear 0.15s;
     border: 1px solid #e2e8f0;
     padding: 0;
 }
@@ -1461,6 +1487,7 @@ input[type="hidden"] {
     pointer-events: auto;
     padding: 8px 0;
     overflow-y: auto;
+    transition: max-height 0.15s ease, opacity 0.12s ease, visibility 0s linear 0s;
 }
 
 

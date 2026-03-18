@@ -50,6 +50,24 @@ Reusable navigation bar component included on every authenticated page.
         {{-- ═══ RIGHT: Clock + User Avatar + Dropdown ═══ --}}
         <div class="navbar-right">
 
+            {{-- Semester Dropdown --}}
+            <div class="relative hidden sm:block">
+                <div class="custom-dropdown" id="semesterDropdown">
+                    <div class="custom-dropdown-selected"
+                        onclick="toggleCustomDropdown(event, 'semesterDropdown')">
+                        <span id="selectedSemesterText">Loading semester...</span>
+                        <div class="dropdown-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options custom-scrollbar" id="semesterDropdownOptions"></div>
+                    <select id="semesterSelect" class="hidden" onchange="handleSemesterChange()"></select>
+                </div>
+            </div>
+
 
             {{-- Integrated User Profile Pill --}}
             <div class="relative">

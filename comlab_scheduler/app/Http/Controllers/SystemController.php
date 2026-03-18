@@ -9,11 +9,56 @@ use App\Models\Room;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Schedule;
+use App\Models\Semester;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class SystemController extends Controller
 {
+    private function resolveSemester(Request $request): Semester
+    {
+        $requested = $request->query('semester_id');
+        if ($requested) {
+            $sem = Semester::find($requested);
+            if ($sem) {
+                $request->session()->put('semester_id', $sem->id);
+                return $sem;
+            }
+        }
+
+        $sessionId = $request->session()->get('semester_id');
+        if ($sessionId) {
+            $sem = Semester::find($sessionId);
+            if ($sem) {
+                return $sem;
+            }
+        }
+
+        $active = Semester::query()->where('is_active', true)->orderByDesc('created_at')->first();
+        if ($active) {
+            $request->session()->put('semester_id', $active->id);
+            return $active;
+        }
+
+        $latest = Semester::query()->orderByDesc('created_at')->first();
+        if ($latest) {
+            $request->session()->put('semester_id', $latest->id);
+            return $latest;
+        }
+
+        // Absolute fallback: create one (prevents "no semester selected" state).
+        $created = Semester::create([
+            'term' => '1st',
+            'school_year' => '2025-2026',
+            'curriculum_mode' => 'custom',
+            'is_active' => true,
+        ]);
+        $request->session()->put('semester_id', $created->id);
+        return $created;
+    }
+
+
     // Auth logic
     public function checkAuth()
     {
@@ -68,10 +113,144 @@ class SystemController extends Controller
         return redirect()->route('login');
     }
 
+    // Semesters
+    public function getSemesters(Request $request)
+    {
+        $current = $this->resolveSemester($request);
+        $semesters = Semester::query()->orderByDesc('created_at')->get()->map(function ($s) use ($current) {
+            return [
+                'id' => $s->id,
+                'term' => $s->term,
+                'school_year' => $s->school_year,
+                'label' => trim(($s->term ?? '') . ' Semester (' . ($s->school_year ?? '') . ')'),
+                'curriculum_mode' => $s->curriculum_mode,
+                'is_active' => (bool) $s->is_active,
+                'is_selected' => $s->id === $current->id,
+            ];
+        });
+
+        return response()->json([
+            'current' => [
+                'id' => $current->id,
+                'term' => $current->term,
+                'school_year' => $current->school_year,
+                'label' => trim(($current->term ?? '') . ' Semester (' . ($current->school_year ?? '') . ')'),
+                'curriculum_mode' => $current->curriculum_mode,
+                'is_active' => (bool) $current->is_active,
+            ],
+            'items' => $semesters,
+        ]);
+    }
+
+    public function createSemester(Request $request)
+    {
+        $request->validate([
+            'term' => ['required', 'string', Rule::in(['1st', '2nd', 'Summer'])],
+            'school_year' => ['required', 'string', 'max:32'],
+            'use_default_curriculum' => ['required', 'boolean'],
+        ]);
+
+        $hasActive = Semester::query()->where('is_active', true)->exists();
+        $semester = Semester::create([
+            'term' => $request->term,
+            'school_year' => trim($request->school_year),
+            'curriculum_mode' => $request->boolean('use_default_curriculum') ? 'default' : 'custom',
+            'is_active' => $hasActive ? false : true,
+        ]);
+
+        if ($semester->curriculum_mode === 'default') {
+            $this->seedDefaultCurriculum($semester);
+        }
+
+        // Always select the newly created semester after creation.
+        $request->session()->put('semester_id', $semester->id);
+
+        return response()->json([
+            'success' => true,
+            'semester' => [
+                'id' => $semester->id,
+                'term' => $semester->term,
+                'school_year' => $semester->school_year,
+                'label' => trim(($semester->term ?? '') . ' Semester (' . ($semester->school_year ?? '') . ')'),
+                'curriculum_mode' => $semester->curriculum_mode,
+                'is_active' => (bool) $semester->is_active,
+            ],
+        ]);
+    }
+
+    public function activateSemester(Request $request, $id)
+    {
+        $semester = Semester::findOrFail($id);
+        DB::transaction(function () use ($semester) {
+            Semester::query()->where('is_active', true)->update(['is_active' => false]);
+            $semester->update(['is_active' => true]);
+        });
+
+        $request->session()->put('semester_id', $semester->id);
+        return response()->json(['success' => true]);
+    }
+
+    public function deleteSemester(Request $request, $id)
+    {
+        $semester = Semester::findOrFail($id);
+        
+        $count = Semester::count();
+        if ($count <= 1) {
+            return response()->json(['success' => false, 'message' => 'Cannot delete the only semester in the system.']);
+        }
+
+        DB::transaction(function () use ($semester) {
+            // Cascade delete the associated relationships to keep DB clean
+            \App\Models\Schedule::where('semester_id', $semester->id)->delete();
+            \App\Models\Subject::where('semester_id', $semester->id)->delete();
+            \App\Models\Room::where('semester_id', $semester->id)->delete();
+            
+            $wasActive = $semester->is_active;
+            $semester->delete();
+
+            // Handle fallback scenario if we deleted the currently active semester
+            if ($wasActive) {
+                $latest = Semester::orderByDesc('created_at')->first();
+                if ($latest) {
+                    $latest->update(['is_active' => true]);
+                }
+            }
+        });
+
+        // Current session reset
+        if ($request->session()->get('semester_id') == $id) {
+            $request->session()->forget('semester_id');
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    private function seedDefaultCurriculum(Semester $semester): void
+    {
+        $term = $semester->term;
+
+        $rooms = \App\Support\DefaultCurriculum::rooms();
+        foreach ($rooms as $r) {
+            Room::firstOrCreate(
+                ['semester_id' => $semester->id, 'room_name' => $r['room_name']],
+                ['campus' => $r['campus']]
+            );
+        }
+
+        $subjects = \App\Support\DefaultCurriculum::subjectsForTerm($term);
+        foreach ($subjects as $s) {
+            Subject::firstOrCreate(
+                ['semester_id' => $semester->id, 'subject_code' => $s['subject_code']],
+                ['subject_name' => $s['subject_name'], 'year_level' => $s['year_level']]
+            );
+        }
+    }
+
     // Rooms logic
     public function getRooms()
     {
-        return response()->json(Room::orderBy('room_name', 'asc')->get()->map(function ($r) {
+        $semester = $this->resolveSemester(request());
+        return response()->json(Room::where('semester_id', $semester->id)->orderBy('room_name', 'asc')->get()->map(function ($r) {
             return [
                 'id' => $r->id,
                 'name' => $r->room_name,
@@ -82,6 +261,8 @@ class SystemController extends Controller
 
     public function addRoom(Request $request)
     {
+        $semester = $this->resolveSemester($request);
+
         try {
             $request->validate([
                 'name'     => 'required|string|max:255',
@@ -89,6 +270,7 @@ class SystemController extends Controller
             ]);
 
             $room = Room::create([
+                'semester_id' => $semester->id,
                 'room_name' => trim($request->name),
                 'campus'    => trim($request->location),
             ]);
@@ -103,13 +285,15 @@ class SystemController extends Controller
 
     public function updateRoom(Request $request, $id)
     {
+        $semester = $this->resolveSemester($request);
+
         try {
             $request->validate([
                 'name'     => 'required|string|max:255',
                 'location' => 'required|string|max:255',
             ]);
 
-            $room = Room::find($id);
+            $room = Room::where('semester_id', $semester->id)->find($id);
             if (!$room) {
                 return response()->json(["success" => false, "error" => "Room not found."], 404);
             }
@@ -129,7 +313,9 @@ class SystemController extends Controller
 
     public function deleteRoom($id)
     {
-        $room = Room::find($id);
+        $semester = $this->resolveSemester(request());
+
+        $room = Room::where('semester_id', $semester->id)->find($id);
         if (!$room) {
             return response()->json(["success" => false, "error" => "Room not found."], 404);
         }
@@ -140,26 +326,38 @@ class SystemController extends Controller
     // Subjects logic
     public function getSubjects()
     {
-        return response()->json(Subject::orderBy('subject_code', 'asc')->get()->map(function ($s) {
+        $semester = $this->resolveSemester(request());
+        return response()->json(Subject::where('semester_id', $semester->id)->orderBy('subject_code', 'asc')->get()->map(function ($s) {
             return [
                 'id' => $s->id,
                 'code' => $s->subject_code,
                 'name' => $s->subject_name,
-                'units' => 3
+                'year_level' => $s->year_level,
+                'units' => 3,
             ];
         }));
     }
     public function addSubject(Request $request)
     {
+        $semester = $this->resolveSemester($request);
+
         $request->validate([
-            'code' => 'required|string|max:255|unique:subjects,subject_code',
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('subjects', 'subject_code')->where(fn ($q) => $q->where('semester_id', $semester->id)),
+            ],
             'name' => 'required|string|max:255',
+            'year_level' => 'nullable|integer|min:1|max:4',
         ]);
 
         try {
             $subject = Subject::create([
+                'semester_id' => $semester->id,
                 'subject_code' => trim($request->code),
-                'subject_name' => trim($request->name)
+                'subject_name' => trim($request->name),
+                'year_level' => $request->year_level ? intval($request->year_level) : null,
             ]);
 
             return response()->json(["success" => true, "id" => $subject->id]);
@@ -172,20 +370,31 @@ class SystemController extends Controller
 
     public function updateSubject(Request $request, $id)
     {
+        $semester = $this->resolveSemester($request);
+
         $request->validate([
-            'code' => 'required|string|max:255|unique:subjects,subject_code,' . $id,
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('subjects', 'subject_code')
+                    ->where(fn ($q) => $q->where('semester_id', $semester->id))
+                    ->ignore($id),
+            ],
             'name' => 'required|string|max:255',
+            'year_level' => 'nullable|integer|min:1|max:4',
         ]);
 
         try {
-            $subject = Subject::find($id);
+            $subject = Subject::where('semester_id', $semester->id)->find($id);
             if (!$subject) {
                 return response()->json(["success" => false, "error" => "Subject not found."], 404);
             }
 
             $subject->update([
                 'subject_code' => trim($request->code),
-                'subject_name' => trim($request->name)
+                'subject_name' => trim($request->name),
+                'year_level' => $request->year_level ? intval($request->year_level) : null,
             ]);
 
             return response()->json(["success" => true]);
@@ -198,7 +407,9 @@ class SystemController extends Controller
 
     public function deleteSubject($id)
     {
-        Subject::destroy($id);
+        $semester = $this->resolveSemester(request());
+
+        Subject::where('semester_id', $semester->id)->where('id', $id)->delete();
         return response()->json(["success" => true]);
     }
 
@@ -248,7 +459,11 @@ class SystemController extends Controller
     // Schedules logic
     public function getSchedules()
     {
-        $schedules = Schedule::with(['teacher', 'subject', 'room', 'section'])->orderBy('day')->orderBy('time_start')->get();
+        $semester = $this->resolveSemester(request());
+        $schedules = Schedule::with(['teacher', 'subject', 'room', 'section'])
+            ->where('semester_id', $semester->id)
+            ->orderBy('day')->orderBy('time_start')
+            ->get();
         return response()->json($schedules->map(function ($s) {
             return [
                 'id' => $s->id,
@@ -269,12 +484,20 @@ class SystemController extends Controller
 
     public function addSchedule(Request $request)
     {
+        $semester = $this->resolveSemester($request);
+
         $faculty_id = $request->faculty_id ? intval($request->faculty_id) : 0;
         $subject_id = $request->subject_id ? intval($request->subject_id) : 0;
         $room_id = $request->room_id ? intval($request->room_id) : 0;
 
         if ($room_id === 0 || $faculty_id === 0 || $subject_id === 0) {
             return response()->json(["success" => false, "error" => "Please select a valid Faculty, Subject and Room. If they aren't in the list, please create them first using their respective management pages."]);
+        }
+
+        $subject = Subject::where('semester_id', $semester->id)->find($subject_id);
+        $room = Room::where('semester_id', $semester->id)->find($room_id);
+        if (!$subject || !$room) {
+            return response()->json(["success" => false, "error" => "Selected Subject/Room does not belong to the currently selected semester."]);
         }
 
 
@@ -288,6 +511,7 @@ class SystemController extends Controller
         }
 
         $schedule = Schedule::create([
+            'semester_id' => $semester->id,
             'teacher_id' => $faculty_id,
             'subject_id' => $subject_id,
             'room_id' => $room_id,
@@ -302,8 +526,9 @@ class SystemController extends Controller
 
     public function updateSchedule(Request $request, $id)
     {
+        $semester = $this->resolveSemester($request);
         // Legacy handling: Update all rows belonging to teacher + original subject
-        $schedule = Schedule::find($id);
+        $schedule = Schedule::where('semester_id', $semester->id)->find($id);
         if (!$schedule) {
             return response()->json(["success" => false, "error" => "Schedule not found"]);
         }
@@ -318,7 +543,10 @@ class SystemController extends Controller
         }
 
         if (!empty($request->subject_code)) {
-            $subject = Subject::firstOrCreate(['subject_code' => $request->subject_code]);
+            $subject = Subject::firstOrCreate(
+                ['semester_id' => $semester->id, 'subject_code' => $request->subject_code],
+                ['subject_name' => $request->subject_name ?: $request->subject_code]
+            );
             if (!empty($request->subject_name)) {
                 $subject->update(['subject_name' => $request->subject_name]);
             }
@@ -335,20 +563,22 @@ class SystemController extends Controller
             return response()->json(["success" => true, "message" => "No explicit updates"]);
         }
 
-        Schedule::where('teacher_id', $teacher_id)->where('subject_id', $original_subject_id)->update($updates);
+        Schedule::where('semester_id', $semester->id)->where('teacher_id', $teacher_id)->where('subject_id', $original_subject_id)->update($updates);
         return response()->json(["success" => true]);
     }
 
     public function deleteSchedule($id)
     {
-        Schedule::destroy($id);
+        $semester = $this->resolveSemester(request());
+        Schedule::where('semester_id', $semester->id)->where('id', $id)->delete();
         return response()->json(["success" => true]);
     }
 
     // Custom APIs for viewing
     public function getTeacherSchedule()
     {
-        $schedules = Schedule::with(['teacher', 'subject', 'room', 'section'])->get();
+        $semester = $this->resolveSemester(request());
+        $schedules = Schedule::with(['teacher', 'subject', 'room', 'section'])->where('semester_id', $semester->id)->get();
         $grouped = [];
         foreach ($schedules as $s) {
             if (!$s->teacher)
@@ -373,7 +603,9 @@ class SystemController extends Controller
 
     public function getLabSchedule()
     {
+        $semester = $this->resolveSemester(request());
         $schedules = Schedule::with(['teacher', 'subject', 'room', 'section'])
+            ->where('semester_id', $semester->id)
             ->orderBy('day')->orderBy('time_start')->get();
 
         $labs = [];

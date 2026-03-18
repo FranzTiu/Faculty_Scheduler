@@ -11,7 +11,7 @@ class Schedule extends Model
 
     protected $table = 'schedules';
     protected $primaryKey = 'id';
-    protected $fillable = ['teacher_id', 'subject_id', 'room_id', 'section_id', 'day', 'time_start', 'time_end'];
+    protected $fillable = ['semester_id', 'teacher_id', 'subject_id', 'room_id', 'section_id', 'day', 'time_start', 'time_end'];
 
     public function teacher()
     {
@@ -31,5 +31,10 @@ class Schedule extends Model
     public function section()
     {
         return $this->belongsTo(Section::class);
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
     }
 }

@@ -40,6 +40,12 @@ Route::post('/api/login', [SystemController::class , 'login']);
 Route::get('/api/logout', [SystemController::class , 'logout']);
 
 Route::middleware('auth')->group(function () {
+    // Semesters
+    Route::get('/api/semesters', [SystemController::class , 'getSemesters']);
+    Route::post('/api/semesters', [SystemController::class , 'createSemester']);
+    Route::put('/api/semesters/{id}/activate', [SystemController::class , 'activateSemester']);
+    Route::delete('/api/semesters/{id}', [SystemController::class , 'deleteSemester']);
+
     // Rooms
     Route::get('/api/rooms', [SystemController::class , 'getRooms']);
     Route::post('/api/rooms', [SystemController::class , 'addRoom']);

@@ -27,9 +27,10 @@
             </div>
 
             <div class="filter-section mb-6">
-                <div class="custom-dropdown" id="combinedFilterDropdown">
+                <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-start">
+                    <div class="custom-dropdown" id="combinedFilterDropdown">
                     <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'combinedFilterDropdown')">
-                        <span id="selectedCombinedText">All ComLabs</span>
+                        <span id="selectedCombinedText">All Campuses</span>
                         <div class="dropdown-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -43,6 +44,26 @@
                     <select id="combinedManagementFilter" class="hidden" onchange="loadScheduleCombinedData()">
                         <option value="all">All Schedule</option>
                     </select>
+                    </div>
+
+                    {{-- Year Level Filter (Subjects view) --}}
+                    <div class="custom-dropdown hidden" id="yearLevelDropdown">
+                        <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'yearLevelDropdown')">
+                            <span id="selectedYearLevelText">All Year Levels</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="custom-dropdown-options custom-scrollbar" id="yearLevelOptions">
+                            {{-- populated via app.js --}}
+                        </div>
+                        <select id="yearLevelFilter" class="hidden" onchange="loadScheduleCombinedData()">
+                            <option value="all">All Year Levels</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -67,6 +88,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadScheduleCombinedData();
+            populateCombinedFilter(true); // Pre-warm campus cache so dropdown is instant
         });
     </script>
 @endpush

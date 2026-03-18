@@ -2,6 +2,24 @@
 
 @section('hero')
     <section class="hero-banner relative w-full">
+        {{-- Hero Semester Selection (Pill) --}}
+        <div class="absolute top-28 right-4 md:right-14 z-20">
+            <div class="custom-dropdown" id="heroSemesterDropdown">
+                <div class="custom-dropdown-selected shadow-lg"
+                    onclick="toggleCustomDropdown(event, 'heroSemesterDropdown')">
+                    <span id="selectedHeroSemesterText">Loading...</span>
+                    <div class="dropdown-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="custom-dropdown-options custom-scrollbar" id="heroSemesterOptions"></div>
+                <select id="heroSemesterSelect" class="hidden" onchange="handleSemesterChange('heroSemesterSelect')"></select>
+            </div>
+        </div>
+
         <div class="stat-cards-container flex flex-wrap justify-center">
             <div class="stat-card" onclick="animateCard(this)">
                 <div class="stat-icon">
@@ -116,9 +134,12 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Since we split the pages, trigger the init sequence selectively
+            // Re-init semesters to ensure hero dropdown is caught
+            if (typeof initSemesters === 'function') {
+                initSemesters();
+            }
             loadCounts();
-            toggleHomeView('schedules'); // Correctly initialize the home view
+            toggleHomeView('schedules'); 
         });
     </script>
 @endpush

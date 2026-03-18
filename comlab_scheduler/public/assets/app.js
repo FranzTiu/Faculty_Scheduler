@@ -47,6 +47,316 @@ function showToast(message, type = 'success') {
     }, 3500);
 }
 
+// Semester state (always selected)
+let selectedSemesterId = null;
+let selectedSemesterMeta = null;
+
+function getStoredSemesterId() {
+    const raw = window.localStorage.getItem('selectedSemesterId');
+    const id = raw ? parseInt(raw, 10) : null;
+    return Number.isFinite(id) ? id : null;
+}
+
+function storeSemesterId(id) {
+    selectedSemesterId = id;
+    window.localStorage.setItem('selectedSemesterId', String(id));
+}
+
+function withSemester(url) {
+    try {
+        // Only append to our own API endpoints.
+        if (typeof url === 'string' && url.startsWith('/api/')) {
+            const u = new URL(url, window.location.origin);
+            const sid = selectedSemesterId || getStoredSemesterId();
+            if (sid) u.searchParams.set('semester_id', sid);
+            return u.pathname + (u.search ? u.search : '');
+        }
+    } catch (e) {}
+    return url;
+}
+
+async function apiFetch(url, options = {}) {
+    return fetch(withSemester(url), options);
+}
+
+async function deleteSemesterDialog(id, label) {
+    if (confirm(`Are you sure you want to completely delete "${label}"?\n\nThis will permanently remove it along with its computer labs, subjects, and schedules. This action cannot be undone.`)) {
+        try {
+            const res = await fetch(`/api/semesters/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Remove the stored selected ID since the active semester might have shifted
+                storeSemesterId('');
+                
+                // Optional: trigger full page refresh to resync everything uniformly
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to delete semester.');
+            }
+        } catch (err) {
+            console.error('Error deleting semester:', err);
+            alert('An error occurred while deleting the semester.');
+        }
+    }
+}
+
+async function initSemesters() {
+    const pairs = [
+        { sel: 'semesterSelect', opts: 'semesterDropdownOptions', txt: 'selectedSemesterText', wrap: 'semesterDropdown' },
+        { sel: 'heroSemesterSelect', opts: 'heroSemesterOptions', txt: 'selectedHeroSemesterText', wrap: 'heroSemesterDropdown' }
+    ];
+
+    let list = [];
+    let current = null;
+
+    try {
+        const stored = getStoredSemesterId();
+        const res = await fetch(stored ? `/api/semesters?semester_id=${stored}` : '/api/semesters');
+        if (res.ok) {
+            const data = await res.json();
+            current = data.current;
+            list = Array.isArray(data.items) ? data.items : [];
+        }
+    } catch (e) {
+        console.error("Init semesters failed:", e);
+    }
+
+    if (current?.id) {
+        storeSemesterId(current.id);
+        selectedSemesterMeta = current;
+    } else if (list.length > 0) {
+        storeSemesterId(list[0].id);
+        selectedSemesterMeta = list[0];
+    }
+
+    pairs.forEach(p => {
+        const sEl = document.getElementById(p.sel);
+        const oEl = document.getElementById(p.opts);
+        const tEl = document.getElementById(p.txt);
+        if (!sEl || !oEl || !tEl) return;
+
+        sEl.innerHTML = '';
+        oEl.innerHTML = '';
+
+        list.forEach(item => {
+            const opt = new Option(item.label, item.id);
+            sEl.add(opt);
+
+            const div = document.createElement('div');
+            const isSelected = String(selectedSemesterId) === String(item.id);
+            div.className = `custom-option ${isSelected ? 'selected' : ''}`;
+            div.dataset.value = String(item.id);
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = item.label;
+            div.appendChild(textSpan);
+
+            // Add a subtle delete icon (SVG)
+            const delBtn = document.createElement('div');
+            delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+            delBtn.style.cursor = 'pointer';
+            delBtn.style.padding = '4px';
+            delBtn.style.borderRadius = '4px';
+            delBtn.style.display = 'flex';
+            delBtn.style.alignItems = 'center';
+            delBtn.style.justifyContent = 'center';
+            delBtn.style.transition = 'all 0.2s';
+            delBtn.title = 'Delete Semester';
+            
+            delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+            delBtn.onmouseout = () => delBtn.style.background = 'transparent';
+
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteSemesterDialog(item.id, item.label);
+            };
+
+            div.appendChild(delBtn);
+
+            if (isSelected) {
+                tEl.textContent = item.label;
+                const wrapEl = document.getElementById(p.wrap);
+                if (wrapEl) wrapEl.classList.add('has-selection');
+            }
+
+            div.onclick = (e) => {
+                if (e) e.stopPropagation();
+                selectCustomOption(String(item.id), item.label, p.wrap, p.txt, p.sel);
+                handleSemesterChange(p.sel);
+            };
+            oEl.appendChild(div);
+        });
+
+        // Add semester button is ALWAYS added
+        const divider = document.createElement('div');
+        divider.style.cssText = 'height:1px;background:#e2e8f0;margin:8px 4px;';
+        oEl.appendChild(divider);
+
+        const addDiv = document.createElement('div');
+        addDiv.className = 'custom-option add-semester-btn';
+        addDiv.style.fontWeight = '700';
+        addDiv.style.color = '#1e1b4b';
+        addDiv.textContent = '+ Add Semester';
+        addDiv.onclick = (e) => {
+            if (e) e.stopPropagation();
+            const wrap = document.getElementById(p.wrap);
+            if (wrap) wrap.classList.remove('open');
+            openAddSemesterModal();
+        };
+        oEl.appendChild(addDiv);
+
+        if (!selectedSemesterId && tEl.textContent.includes('Loading')) {
+            tEl.textContent = 'Select Semester';
+        }
+    });
+
+    applyCurriculumRestrictions();
+}
+
+async function handleSemesterChange(sourceId = 'semesterSelect') {
+    const sourceSelect = document.getElementById(sourceId);
+    if (!sourceSelect) return;
+
+    if (sourceSelect.value === '__add__') {
+        if (selectedSemesterId) sourceSelect.value = String(selectedSemesterId);
+        openAddSemesterModal();
+        return;
+    }
+
+    const id = parseInt(sourceSelect.value, 10);
+    if (!Number.isFinite(id)) return;
+    storeSemesterId(id);
+
+    // Sync other semester dropdowns
+    const dropdowns = [
+        { selectId: 'semesterSelect', textId: 'selectedSemesterText', dropdownId: 'semesterDropdown' },
+        { selectId: 'heroSemesterSelect', textId: 'selectedHeroSemesterText', dropdownId: 'heroSemesterDropdown' }
+    ];
+
+    dropdowns.forEach(dd => {
+        if (dd.selectId === sourceId) return;
+        const otherSelect = document.getElementById(dd.selectId);
+        const otherText = document.getElementById(dd.textId);
+        if (otherSelect) {
+            otherSelect.value = String(id);
+            if (otherText) {
+                const opt = otherSelect.options[otherSelect.selectedIndex];
+                if (opt) otherText.textContent = opt.textContent;
+            }
+        }
+    });
+
+    try {
+        const res = await fetch(`/api/semesters?semester_id=${id}`);
+        const data = await res.json();
+        if (data?.current) selectedSemesterMeta = data.current;
+    } catch (e) {}
+
+    applyCurriculumRestrictions();
+
+    loadCounts();
+    loadScheduleCombinedData();
+    _cachedCampusOptions = null; // bust campus cache so next fetch is fresh
+    populateCombinedFilter(true);
+    populateRoomDropdowns?.();
+    populateSubjectDropdowns?.();
+    loadLabGrid?.();
+    loadTeacherGrid?.();
+    renderSchedulesVisualGrid?.();
+    loadScheduleVisualData?.();
+}
+
+function applyCurriculumRestrictions() {
+    // Default curriculum mode is no longer read-only.
+    // Subjects and rooms can always be added, edited, and deleted.
+    const combinedAddBtn = document.getElementById('combinedAddBtn');
+    if (combinedAddBtn) {
+        combinedAddBtn.disabled = false;
+        combinedAddBtn.style.opacity = '';
+        combinedAddBtn.style.cursor = '';
+        combinedAddBtn.title = '';
+    }
+}
+
+function openAddSemesterModal() {
+    const overlay = document.getElementById('semesterModalOverlay');
+    const err = document.getElementById('semesterError');
+    if (err) err.style.display = 'none';
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function closeAddSemesterModal() {
+    const overlay = document.getElementById('semesterModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.getElementById('semesterForm')?.reset();
+}
+
+document.getElementById('semesterForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const term = document.getElementById('sem_term')?.value;
+    const sy = document.getElementById('sem_sy')?.value?.trim();
+    const useDefault = document.getElementById('sem_default')?.value === '1';
+    const err = document.getElementById('semesterError');
+    if (err) err.style.display = 'none';
+
+    if (!term || !sy) {
+        if (err) {
+            err.textContent = 'Please select a semester and provide a school year.';
+            err.style.display = 'block';
+        }
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/semesters', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ term, school_year: sy, use_default_curriculum: useDefault })
+        });
+        
+        let data;
+        const text = await res.text();
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('Non-JSON response:', text);
+            data = { success: false, message: 'Invalid server response. Please check logs.' };
+        }
+
+        if (!res.ok || !data.success) {
+            const msg = data?.message || (data?.errors ? Object.values(data.errors).flat().join(' ') : 'Failed to create semester.');
+            if (err) {
+                err.textContent = msg;
+                err.style.display = 'block';
+            }
+            return; // STOP HERE to prevent catch block from showing "Network error"
+        }
+
+        closeAddSemesterModal();
+        if (data.semester?.id) storeSemesterId(data.semester.id);
+        await initSemesters();
+        // Force refresh all grids after adding
+        await handleSemesterChange('semesterSelect'); 
+        showToast('Semester created successfully!', 'success');
+    } catch (e2) {
+        console.error(e2);
+        if (err) {
+            err.textContent = 'Network/server error. Failed to create semester.';
+            err.style.display = 'block';
+        }
+    }
+});
+
 // Auth State Management
 async function checkAuth() {
     try {
@@ -56,9 +366,10 @@ async function checkAuth() {
             document.body.classList.add('logged-in');
             document.body.classList.remove('logged-out');
 
-            // Load components as Promises to avoid blocking
+            // Initialize semester first (semester controls everything)
+            await initSemesters();
             loadCounts();
-            // showSection('home'); // Removed to allow server-side link management
+            // populateRoomDropdowns(); // Should be done locally if needed
         } else {
             document.body.classList.add('logged-out');
             document.body.classList.remove('logged-in');
@@ -517,9 +828,9 @@ function openModal(section, options = {}) {
         renderScheduleFormStructure();
 
         Promise.all([
-            fetch('/api/rooms').then(r => r.json()),
-            fetch('/api/subjects').then(r => r.json()),
-            fetch('/api/faculty').then(r => r.json())
+            apiFetch('/api/rooms').then(r => r.json()),
+            apiFetch('/api/subjects').then(r => r.json()),
+            apiFetch('/api/faculty').then(r => r.json())
         ]).then(([rooms, subjects, faculty]) => {
             populateScheduleDropdowns(rooms, subjects, faculty);
         });
@@ -757,7 +1068,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
         // Row edit: update faculty + a specific schedule row
         if (editingFacultyId && editingScheduleId) {
             try {
-                const facRes = await fetch(`/api/faculty/${editingFacultyId}`, {
+                const facRes = await apiFetch(`/api/faculty/${editingFacultyId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ name, employment_status: status })
@@ -786,7 +1097,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
                 const subjCodeVal = document.getElementById('m_subject_code')?.value || '';
                 const subjNameVal = document.getElementById('m_subject_name')?.value || '';
 
-                const schedRes = await fetch(`/api/schedules/${editingScheduleId}`, {
+                const schedRes = await apiFetch(`/api/schedules/${editingScheduleId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({
@@ -831,7 +1142,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
         } else if (editingFacultyId) {
             // Edit only teacher (potentially adding their first schedule)
             try {
-                const facRes = await fetch(`/api/faculty/${editingFacultyId}`, {
+                const facRes = await apiFetch(`/api/faculty/${editingFacultyId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ name, employment_status: status })
@@ -850,7 +1161,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
                 const subject = subjectInput?.value || '';
                 const section = sectionInput?.value || '';
                 if (subject) {
-                    await fetch('/api/schedules', {
+                    await apiFetch('/api/schedules', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                         body: JSON.stringify({
@@ -884,7 +1195,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
             const subject = subjectInput?.value || '';
             const section = sectionInput?.value || '';
 
-            const facRes = await fetch('/api/faculty', {
+            const facRes = await apiFetch('/api/faculty', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ name, employment_status: status })
@@ -892,7 +1203,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
             const facSaved = await facRes.json();
 
             if (facSaved.success && subject) {
-                await fetch('/api/schedules', {
+                await apiFetch('/api/schedules', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({
@@ -949,7 +1260,7 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
     }
 
     try {
-        const res = await fetch(`/api/${currentSection}`, {
+        const res = await apiFetch(`/api/${currentSection}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: JSON.stringify(data)
@@ -1022,13 +1333,37 @@ async function loadTeacherManagementTable() {
 
     try {
         const [facultyRes, scheduleRes] = await Promise.all([
-            fetch('/api/faculty'),
-            fetch('/api/teacher_schedule')
+            apiFetch('/api/faculty'),
+            apiFetch('/api/teacher_schedule')
         ]);
 
         const facultyData = await facultyRes.json();
         const scheduleGrouped = await scheduleRes.json();
         const filterStatus = document.getElementById('teacherStatusFilter')?.value || 'all';
+        const filterName   = document.getElementById('teacherNameFilter')?.value   || 'all';
+
+        // --- Populate Teacher Name dropdown (once, or whenever faculty list may have changed) ---
+        const nameOptionsDiv = document.getElementById('teacherNameOptions');
+        const nameSelect     = document.getElementById('teacherNameFilter');
+        const nameTextEl     = document.getElementById('selectedTeacherNameText');
+        if (nameOptionsDiv && nameSelect) {
+            const currentNameVal = nameSelect.value || 'all';
+            nameSelect.innerHTML = '<option value="all">All Teachers</option>';
+            let nameOptHtml = `<div class="custom-option ${currentNameVal === 'all' ? 'selected' : ''}" data-value="all"
+                onclick="selectCustomOption('all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
+                All Teachers</div>`;
+
+            facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
+                const safeName = teacher.name.replace(/'/g, "\\'");
+                nameSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+                nameOptHtml += `<div class="custom-option ${currentNameVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}"
+                    onclick="selectCustomOption('${safeName}','${safeName}','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
+                    ${teacher.name}</div>`;
+            });
+            nameOptionsDiv.innerHTML = nameOptHtml;
+            nameSelect.value = currentNameVal;
+            if (nameTextEl) nameTextEl.textContent = currentNameVal === 'all' ? 'All Teachers' : currentNameVal;
+        }
 
         tbody.innerHTML = '';
 
@@ -1037,7 +1372,9 @@ async function loadTeacherManagementTable() {
             const teacherSchedules = scheduleGrouped[teacher.name] || [];
 
             const employmentStatus = teacher.employment_status || 'Full-time';
+            // Apply both filters
             if (filterStatus !== 'all' && employmentStatus !== filterStatus) return;
+            if (filterName   !== 'all' && teacher.name   !== filterName)   return;
 
             if (teacherSchedules.length === 0) {
                 // Teacher with no schedules
@@ -1058,7 +1395,7 @@ async function loadTeacherManagementTable() {
                 // Group schedules by subject
                 const groupedBySubject = {};
                 teacherSchedules.forEach(sched => {
-                    const key = `${sched.subject_code} – ${sched.subject_name}`;
+                    const key = `${sched.subject_code} \u2013 ${sched.subject_name}`;
                     if (!groupedBySubject[key]) {
                         groupedBySubject[key] = {
                             subject: key,
@@ -1131,9 +1468,9 @@ function getActionIcons(facultyId, teacherName, subjectCode, scheduleId, employm
     `;
 }
 
-// Add event listener for the new filter
+// Add event listener for the filter selects
 document.addEventListener('change', (e) => {
-    if (e.target.id === 'teacherStatusFilter') {
+    if (e.target.id === 'teacherStatusFilter' || e.target.id === 'teacherNameFilter') {
         loadTeacherManagementTable();
     }
 });
@@ -1148,7 +1485,7 @@ async function viewFacultyAssignments(el) {
     const subjectCode = el.dataset.subjectCode;
 
     try {
-        const res = await fetch('/api/teacher_schedule');
+        const res = await apiFetch('/api/teacher_schedule');
         const grouped = await res.json();
         const schedules = (grouped[teacherName] || []).filter(s =>
             !subjectCode || s.subject_code === subjectCode
@@ -1238,9 +1575,9 @@ async function loadSectionData(section) {
 async function loadCounts() {
     try {
         const [facultyRes, roomsRes, schedulesRes] = await Promise.all([
-            fetch('/api/faculty'),
-            fetch('/api/rooms'),
-            fetch('/api/schedules')
+            apiFetch('/api/faculty'),
+            apiFetch('/api/rooms'),
+            apiFetch('/api/schedules')
         ]);
         const facultyData = await facultyRes.json();
         const roomsData = await roomsRes.json();
@@ -1290,7 +1627,7 @@ async function confirmDelete() {
     }
 
     try {
-        const res = await fetch(`/api/${section}/${id}`, {
+        const res = await apiFetch(`/api/${section}/${id}`, {
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': csrfToken }
         });
@@ -1387,8 +1724,8 @@ async function renderSchedulesVisualGrid() {
     }
 
     const [roomsRes, schedulesRes] = await Promise.all([
-        fetch('/api/rooms'),
-        fetch('/api/lab_schedule')
+        apiFetch('/api/rooms'),
+        apiFetch('/api/lab_schedule')
     ]);
 
     const roomsData = await roomsRes.json();
@@ -1555,6 +1892,56 @@ async function renderSchedulesVisualGrid() {
 // Schedule Combined View Logic (ComLabs & Subjects)
 let currentCombinedView = 'comlabs';
 let editingSubjectId = null;
+let currentYearLevelFilter = 'all';
+
+function populateYearLevelFilter() {
+    const filter = document.getElementById('yearLevelFilter');
+    const optionsDiv = document.getElementById('yearLevelOptions');
+    const selectedText = document.getElementById('selectedYearLevelText');
+    if (!filter || !optionsDiv || !selectedText) return;
+
+    const currentVal = filter.value || currentYearLevelFilter || 'all';
+    filter.innerHTML = `
+        <option value="all">All Year Levels</option>
+        <option value="1">First Year</option>
+        <option value="2">Second Year</option>
+        <option value="3">Third Year</option>
+        <option value="4">Fourth Year</option>
+    `;
+
+    optionsDiv.innerHTML = `
+        <div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all"
+            onclick="selectCustomOption('all', 'All Year Levels', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            All Year Levels
+        </div>
+        <div class="custom-option ${currentVal === '1' ? 'selected' : ''}" data-value="1"
+            onclick="selectCustomOption('1', 'First Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            First Year
+        </div>
+        <div class="custom-option ${currentVal === '2' ? 'selected' : ''}" data-value="2"
+            onclick="selectCustomOption('2', 'Second Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            Second Year
+        </div>
+        <div class="custom-option ${currentVal === '3' ? 'selected' : ''}" data-value="3"
+            onclick="selectCustomOption('3', 'Third Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            Third Year
+        </div>
+        <div class="custom-option ${currentVal === '4' ? 'selected' : ''}" data-value="4"
+            onclick="selectCustomOption('4', 'Fourth Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            Fourth Year
+        </div>
+    `;
+
+    filter.value = currentVal;
+    currentYearLevelFilter = currentVal;
+
+    selectedText.textContent =
+        currentVal === '1' ? 'First Year' :
+        currentVal === '2' ? 'Second Year' :
+        currentVal === '3' ? 'Third Year' :
+        currentVal === '4' ? 'Fourth Year' :
+        'All Year Levels';
+}
 
 function switchCombinedView(view) {
     currentCombinedView = view;
@@ -1565,16 +1952,22 @@ function switchCombinedView(view) {
 
     // Update Add Button text and action
     const addBtn = document.getElementById('combinedAddBtn');
+    const yearDropdown = document.getElementById('yearLevelDropdown');
+    const filterDropdown = document.getElementById('combinedFilterDropdown');
+    
     if (view === 'comlabs') {
         addBtn.textContent = 'Add ComLab';
         addBtn.setAttribute('onclick', 'openEditRoomModal()');
         const selectedText = document.getElementById('selectedCombinedText');
-        if (selectedText) selectedText.textContent = 'All ComLabs';
+        if (selectedText) selectedText.textContent = 'All Campuses';
+        if (yearDropdown) yearDropdown.classList.add('hidden');
+        if (filterDropdown) filterDropdown.classList.remove('hidden');
     } else {
         addBtn.textContent = 'Add Subject';
         addBtn.setAttribute('onclick', 'openSubjectModal()');
-        const selectedText = document.getElementById('selectedCombinedText');
-        if (selectedText) selectedText.textContent = 'All Subjects';
+        if (filterDropdown) filterDropdown.classList.add('hidden');
+        if (yearDropdown) yearDropdown.classList.remove('hidden');
+        populateYearLevelFilter();
     }
 
     // Populate filter dropdown appropriately
@@ -1584,7 +1977,10 @@ function switchCombinedView(view) {
     loadScheduleCombinedData();
 }
 
-async function populateCombinedFilter() {
+// Cache campuses so we don't fetch on every dropdown open
+let _cachedCampusOptions = null;
+
+async function populateCombinedFilter(forceRefetch = false) {
     const filter = document.getElementById('combinedManagementFilter');
     const optionsDiv = document.getElementById('combinedFilterOptions');
     if (!filter || !optionsDiv) return;
@@ -1594,32 +1990,32 @@ async function populateCombinedFilter() {
     let optionsHtml = '';
 
     if (currentCombinedView === 'comlabs') {
-        filterHtml = '<option value="all">All ComLabs</option>';
-        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All ComLabs', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All ComLabs</div>`;
-        try {
-            const res = await fetch('/api/rooms');
-            const rooms = await res.json();
-            rooms.forEach(room => {
-                const name = room.name.replace(/COMPLAB/g, 'COMLAB');
-                filterHtml += `<option value="${name}">${name}</option>`;
-                optionsHtml += `<div class="custom-option ${currentVal === name ? 'selected' : ''}" data-value="${name}" onclick="selectCustomOption('${name}', '${name}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${name}</div>`;
-            });
-        } catch (e) {
-            console.error(e);
+        // Fetch campus list only once (or when forced, e.g. after semester change)
+        if (!_cachedCampusOptions || forceRefetch) {
+            try {
+                const res = await apiFetch('/api/rooms');
+                const rooms = await res.json();
+                const campuses = new Set();
+                rooms.forEach(room => {
+                    campuses.add(room.campus || 'Main Campus');
+                });
+                _cachedCampusOptions = Array.from(campuses).sort();
+            } catch (e) {
+                console.error(e);
+                _cachedCampusOptions = [];
+            }
         }
+
+        filterHtml = '<option value="all">All Campuses</option>';
+        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Campuses', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Campuses</div>`;
+        _cachedCampusOptions.forEach(campus => {
+            filterHtml += `<option value="${campus}">${campus}</option>`;
+            optionsHtml += `<div class="custom-option ${currentVal === campus ? 'selected' : ''}" data-value="${campus}" onclick="selectCustomOption('${campus}', '${campus}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${campus}</div>`;
+        });
     } else {
+        // Subjects view — filter dropdown is hidden anyway
         filterHtml = '<option value="all">All Subjects</option>';
-        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Subjects', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Subjects</div>`;
-        try {
-            const res = await fetch('/api/subjects');
-            const subjects = await res.json();
-            subjects.forEach(sub => {
-                filterHtml += `<option value="${sub.code}">${sub.code} - ${sub.name}</option>`;
-                optionsHtml += `<div class="custom-option ${currentVal === sub.code ? 'selected' : ''}" data-value="${sub.code}" onclick="selectCustomOption('${sub.code}', '${sub.code} - ${sub.name}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${sub.code} - ${sub.name}</div>`;
-            });
-        } catch (e) {
-            console.error(e);
-        }
+        optionsHtml = `<div class="custom-option selected" data-value="all" onclick="selectCustomOption('all', 'All Subjects', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Subjects</div>`;
     }
 
     filter.innerHTML = filterHtml;
@@ -1627,7 +2023,7 @@ async function populateCombinedFilter() {
     filter.value = currentVal;
     if (!filter.value) filter.value = 'all';
 
-    // Update selection highlight color
+    // Update selection highlight colour
     const dropdown = document.getElementById('combinedFilterDropdown');
     if (dropdown) {
         dropdown.classList.toggle('has-selection', filter.value !== 'all');
@@ -1641,17 +2037,17 @@ async function loadScheduleCombinedData() {
     if (!tbody || !header) return;
 
     const filterVal = document.getElementById('combinedManagementFilter')?.value || 'all';
-
+    const yearVal = document.getElementById('yearLevelFilter')?.value || 'all';
     if (currentCombinedView === 'comlabs') {
         // --- COMLABS VIEW ---
         header.innerHTML = `
-            <th>ComLab(s) Name</th>
-            <th>Campus</th>
-            <th>Action</th>
-        `;
+                <th>ComLab(s) Name</th>
+                <th>Campus</th>
+                <th>Action</th>
+            `;
 
         try {
-            const res = await fetch('/api/rooms');
+            const res = await apiFetch('/api/rooms');
             if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
             const rooms = await res.json();
 
@@ -1663,59 +2059,68 @@ async function loadScheduleCombinedData() {
             }
 
             rooms.forEach(room => {
+                const safeCampus = room.campus || 'Main Campus';
+                if (filterVal !== 'all' && safeCampus !== filterVal) return;
+
                 const tr = document.createElement('tr');
                 const safeName = (room.name || '').replace(/COMPLAB/g, 'COMLAB');
-                const safeCampus = room.campus || 'Main Campus';
+
                 const escapedName = safeName.replace(/'/g, "\\'");
                 const escapedCampus = safeCampus.replace(/'/g, "\\'");
                 tr.innerHTML = `
-                    <td class="room-name-cell">${safeName}</td>
-                    <td class="campus-cell">${safeCampus}</td>
-                    <td class="action-cell">
-                        <div class="action-btn-group">
-                            <span class="icon-edit-new" onclick="openEditRoomModal(${room.id}, '${escapedName}', '${escapedCampus}')" title="Edit">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                            </span>
-                            <span class="icon-delete-new" onclick="deleteItem('rooms', ${room.id})">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                            </span>
-                        </div>
-                    </td>
-                `;
+                        <td class="room-name-cell">${safeName}</td>
+                        <td class="campus-cell">${safeCampus}</td>
+                        <td class="action-cell">
+                            <div class="action-btn-group">
+                                <span class="icon-edit-new" onclick="openEditRoomModal(${room.id}, '${escapedName}', '${escapedCampus}')" title="Edit">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                </span>
+                                <span class="icon-delete-new" onclick="deleteItem('rooms', ${room.id})">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                </span>
+                            </div>
+                        </td>
+                    `;
                 tbody.appendChild(tr);
             });
         } catch (e) { console.error(e); }
     } else {
         // --- SUBJECTS VIEW ---
         header.innerHTML = `
-            <th>Subject Code</th>
-            <th>Subject Name</th>
-            <th>Action</th>
-        `;
+                <th>Subject Code</th>
+                <th>Subject Name</th>
+                <th>Action</th>
+            `;
 
         try {
-            const res = await fetch('/api/subjects');
+            const res = await apiFetch('/api/subjects');
             const subjects = await res.json();
 
             tbody.innerHTML = '';
             subjects.forEach(sub => {
                 if (filterVal !== 'all' && sub.code !== filterVal) return;
+                if (yearVal !== 'all') {
+                    const y = sub.year_level == null ? '' : String(sub.year_level);
+                    if (y !== String(yearVal)) return;
+                }
 
                 const tr = document.createElement('tr');
+                const codeEsc = (sub.code || '').replace(/'/g, "\\'");
+                const nameEsc = (sub.name || '').replace(/'/g, "\\'");
                 tr.innerHTML = `
-                    <td class="subject-code-cell">${sub.code}</td>
-                    <td class="subject-name-cell">${sub.name}</td>
-                    <td class="action-cell">
-                        <div class="action-btn-group">
-                            <span class="icon-edit-new" onclick="openSubjectModal(${sub.id}, '${sub.code.replace(/'/g, "\\'")}', '${sub.name.replace(/'/g, "\\'")}', ${sub.units})">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                            </span>
-                            <span class="icon-delete-new" onclick="deleteItem('subjects', ${sub.id})">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                            </span>
-                        </div>
-                    </td>
-                `;
+                        <td class="subject-code-cell">${sub.code}</td>
+                        <td class="subject-name-cell">${sub.name}</td>
+                        <td class="action-cell">
+                            <div class="action-btn-group">
+                                <span class="icon-edit-new" onclick="openSubjectModal(${sub.id}, '${codeEsc}', '${nameEsc}', ${sub.units}, ${sub.year_level || 'null'})">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                </span>
+                                <span class="icon-delete-new" onclick="deleteItem('subjects', ${sub.id})">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                </span>
+                            </div>
+                        </td>
+                    `;
                 tbody.appendChild(tr);
             });
         } catch (e) { console.error(e); }
@@ -1723,7 +2128,7 @@ async function loadScheduleCombinedData() {
 }
 
 // Subject Modal Logic
-async function openSubjectModal(id = null, code = '', name = '', units = 3) {
+async function openSubjectModal(id = null, code = '', name = '', units = 3, yearLevel = null) {
     editingSubjectId = id;
     document.getElementById('subjectModalOverlay').style.display = 'flex';
     document.getElementById('subjectModalTitle').textContent = id ? 'Edit Subject' : 'Add New Subject';
@@ -1733,12 +2138,14 @@ async function openSubjectModal(id = null, code = '', name = '', units = 3) {
     document.getElementById('sm_code').value = code;
     document.getElementById('sm_name').value = name;
     document.getElementById('sm_units').value = units;
+    const yl = document.getElementById('sm_year_level');
+    if (yl) yl.value = yearLevel ? String(yearLevel) : '';
 
     // Populate room dropdown
     const roomSelect = document.getElementById('sm_room');
     roomSelect.innerHTML = '<option value="">-- No Room --</option>';
     try {
-        const res = await fetch('/api/rooms');
+        const res = await apiFetch('/api/rooms');
         const rooms = await res.json();
         rooms.forEach(room => {
             roomSelect.innerHTML += `<option value="${room.id}">${room.name}</option>`;
@@ -1761,6 +2168,7 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
     const name = document.getElementById('sm_name').value;
     const unitsInput = document.getElementById('sm_units');
     const roomInput = document.getElementById('sm_room');
+    const yearLevelInput = document.getElementById('sm_year_level');
     
     const units = unitsInput ? (parseInt(unitsInput.value) || 3) : 3;
     const roomId = roomInput ? roomInput.value : '';
@@ -1777,18 +2185,20 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
     }
 
     const body = { code, name, units };
+    const yearLevelVal = yearLevelInput ? yearLevelInput.value : '';
+    if (yearLevelVal !== '' && yearLevelVal != null) body.year_level = parseInt(yearLevelVal, 10);
     if (roomId) body.room_id = roomId;
 
     try {
         let res;
         if (editingSubjectId) {
-            res = await fetch(`/api/subjects/${editingSubjectId}`, {
+            res = await apiFetch(`/api/subjects/${editingSubjectId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify(body)
             });
         } else {
-            res = await fetch('/api/subjects', {
+            res = await apiFetch('/api/subjects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify(body)
@@ -1848,8 +2258,8 @@ async function loadLabGrid() {
 
     try {
         const [schedRes, roomsRes] = await Promise.all([
-            fetch('/api/lab_schedule'),
-            fetch('/api/rooms')
+            apiFetch('/api/lab_schedule'),
+            apiFetch('/api/rooms')
         ]);
         const groupedSchedules = await schedRes.json();
         const roomsDb = await roomsRes.json();
@@ -2190,13 +2600,16 @@ function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', text
     if (selectedText) selectedText.textContent = text;
     if (hiddenSelect) {
         hiddenSelect.value = value;
-        // Trigger the original filter change
+        // Trigger the appropriate data reload based on which filter changed
         if (selectId === 'roomFilter' || selectId === 'teacherSelectFilter') {
             handleFilterChange();
-        } else if (selectId === 'teacherStatusFilter') {
+        } else if (selectId === 'teacherStatusFilter' || selectId === 'teacherNameFilter') {
             loadTeacherManagementTable();
-        } else {
-            renderSchedulesVisualGrid();
+        } else if (selectId === 'combinedManagementFilter') {
+            // Campus filter (ComLabs view) or subjects filter — reload the combined table
+            loadScheduleCombinedData();
+        } else if (selectId !== 'semesterSelect' && selectId !== 'heroSemesterSelect') {
+            renderSchedulesVisualGrid?.();
         }
     }
 
@@ -2210,8 +2623,11 @@ function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', text
         }
     });
 
-    // Close dropdown
-    if (dropdown) dropdown.classList.remove('open');
+    // Update has-selection highlight on the dropdown wrapper
+    if (dropdown) {
+        dropdown.classList.toggle('has-selection', value !== 'all');
+        dropdown.classList.remove('open');
+    }
 }
 
 // Global click listener to close dropdown
@@ -2232,8 +2648,8 @@ async function loadTeacherGrid() {
 
     try {
         const [scheduleRes, facultyRes] = await Promise.all([
-            fetch('/api/teacher_schedule'),
-            fetch('/api/faculty')
+            apiFetch('/api/teacher_schedule'),
+            apiFetch('/api/faculty')
         ]);
         const groupedSchedules = await scheduleRes.json();
         const facultyList = await facultyRes.json();
@@ -2634,7 +3050,7 @@ function closeLabModal() {
 
 async function populateSubjectDropdowns() {
     try {
-        const res = await fetch('/api/subjects');
+        const res = await apiFetch('/api/subjects');
         const subjects = await res.json();
 
         const subjectFilter = document.getElementById('subjectsManagementFilter');
@@ -2655,7 +3071,7 @@ async function populateSubjectDropdowns() {
 
 async function populateRoomDropdowns() {
     try {
-        const res = await fetch('/api/rooms');
+        const res = await apiFetch('/api/rooms');
         const rooms = await res.json();
 
         const roomFilter = document.getElementById('roomFilter');
@@ -2731,5 +3147,8 @@ async function populateRoomDropdowns() {
 }
 
 // Initialization
-checkAuth();
-populateRoomDropdowns();
+checkAuth().then(() => {
+    // Rooms & Subjects are page-specific now
+    populateRoomDropdowns?.();
+    populateSubjectDropdowns?.();
+});
