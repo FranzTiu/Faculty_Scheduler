@@ -82,29 +82,58 @@ class SystemController extends Controller
 
     public function addRoom(Request $request)
     {
-        $room = Room::create([
-            'room_name' => $request->name,
-            'campus' => $request->location ?? 'Main Campus'
-        ]);
-        return response()->json(["success" => true, "id" => $room->id]);
+        try {
+            $request->validate([
+                'name'     => 'required|string|max:255',
+                'location' => 'required|string|max:255',
+            ]);
+
+            $room = Room::create([
+                'room_name' => trim($request->name),
+                'campus'    => trim($request->location),
+            ]);
+
+            return response()->json(["success" => true, "id" => $room->id, "name" => $room->room_name, "campus" => $room->campus]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["success" => false, "errors" => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(["success" => false, "error" => $e->getMessage()], 500);
+        }
     }
 
     public function updateRoom(Request $request, $id)
     {
-        $room = Room::find($id);
-        if ($room) {
-            $room->update([
-                'room_name' => $request->name,
-                'campus' => $request->location ?? $room->campus
+        try {
+            $request->validate([
+                'name'     => 'required|string|max:255',
+                'location' => 'required|string|max:255',
             ]);
-            return response()->json(["success" => true]);
+
+            $room = Room::find($id);
+            if (!$room) {
+                return response()->json(["success" => false, "error" => "Room not found."], 404);
+            }
+
+            $room->update([
+                'room_name' => trim($request->name),
+                'campus'    => trim($request->location),
+            ]);
+
+            return response()->json(["success" => true, "name" => $room->room_name, "campus" => $room->campus]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["success" => false, "errors" => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(["success" => false, "error" => $e->getMessage()], 500);
         }
-        return response()->json(["success" => false]);
     }
 
     public function deleteRoom($id)
     {
-        Room::destroy($id);
+        $room = Room::find($id);
+        if (!$room) {
+            return response()->json(["success" => false, "error" => "Room not found."], 404);
+        }
+        $room->delete();
         return response()->json(["success" => true]);
     }
 
@@ -127,27 +156,17 @@ class SystemController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        DB::beginTransaction();
         try {
             $subject = Subject::create([
-                'subject_code' => $request->code,
-                'subject_name' => $request->name
+                'subject_code' => trim($request->code),
+                'subject_name' => trim($request->name)
             ]);
 
-            if ($request->has('room_id') && $request->room_id) {
-                // Not standard pattern but adapting legacy logic
-                Schedule::create([
-                    'subject_id' => $subject->id,
-                    'room_id' => current(explode(',', $request->room_id)) // fallback
-                ]);
-            }
-
-            DB::commit();
             return response()->json(["success" => true, "id" => $subject->id]);
-        }
-        catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(["success" => false, "error" => $e->getMessage()]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["success" => false, "errors" => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(["success" => false, "error" => $e->getMessage()], 500);
         }
     }
 
@@ -158,31 +177,22 @@ class SystemController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        DB::beginTransaction();
         try {
             $subject = Subject::find($id);
-            if ($subject) {
-                $subject->update([
-                    'subject_code' => $request->code,
-                    'subject_name' => $request->name
-                ]);
-
-                // Legacy: clean up standalone
-                Schedule::where('subject_id', $id)->whereNull('teacher_id')->delete();
-
-                if ($request->has('room_id') && $request->room_id) {
-                    Schedule::create([
-                        'subject_id' => $id,
-                        'room_id' => current(explode(',', $request->room_id))
-                    ]);
-                }
+            if (!$subject) {
+                return response()->json(["success" => false, "error" => "Subject not found."], 404);
             }
-            DB::commit();
+
+            $subject->update([
+                'subject_code' => trim($request->code),
+                'subject_name' => trim($request->name)
+            ]);
+
             return response()->json(["success" => true]);
-        }
-        catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(["success" => false, "error" => $e->getMessage()]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["success" => false, "errors" => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(["success" => false, "error" => $e->getMessage()], 500);
         }
     }
 

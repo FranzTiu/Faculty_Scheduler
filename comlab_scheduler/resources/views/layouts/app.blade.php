@@ -130,6 +130,28 @@
                 </form>
             </div>
         </div>
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModalOverlay"
+            style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 6000; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto;">
+            <div class="glass-card"
+                style="width: 100%; max-width: 400px; padding: 2.2rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                <div style="margin-bottom: 1.5rem; display: flex; justify-content: center;">
+                    <div style="width: 64px; height: 64px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9v4m4-4v4"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h3 style="margin-bottom: 0.8rem; color: #1e1b4b; font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800;">Are you sure?</h3>
+                <p id="deleteModalMessage" style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 2rem; font-family: 'Inter', sans-serif;">
+                    This action cannot be undone. This item will be permanently removed from the system.
+                </p>
+                <div style="display: flex; gap: 0.8rem; justify-content: center;">
+                    <button type="button" class="btn-modal btn-modal-cancel" style="min-width: 120px;" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="button" class="btn-modal btn-modal-save" style="min-width: 120px; background: #dc2626; border-color: #dc2626;" onclick="confirmDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
     @else
         <!-- Render login page if not authenticated -->
         @yield('content')

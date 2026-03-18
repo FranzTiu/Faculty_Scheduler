@@ -1,3 +1,52 @@
+// Toast Notification System
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:0.75rem;pointer-events:none;';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    toast.style.cssText = `
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.9rem 1.25rem;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: white;
+        background: ${isSuccess ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : 'linear-gradient(135deg, #7f1d1d, #991b1b)'};
+        border-left: 4px solid ${isSuccess ? '#fbbf24' : '#f87171'};
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.25);
+        max-width: 360px;
+        opacity: 0;
+        transform: translateX(30px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    `;
+    const icon = isSuccess
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="#f87171"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    });
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(30px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
 // Auth State Management
 async function checkAuth() {
     try {
@@ -913,14 +962,6 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
             closeModal();
             if (currentSection === 'schedules') {
                 renderSchedulesVisualGrid();
-            } else if (currentSection === 'rooms') {
-                loadScheduleCombinedData();
-                populateSubjectDropdowns();
-            } else {
-                loadSectionData(currentSection);
-                if (currentSection === 'rooms') {
-                    populateRoomDropdowns();
-                }
             }
         } else {
             if (errBox) {
@@ -1195,40 +1236,96 @@ async function loadSectionData(section) {
 }
 
 async function loadCounts() {
-    // Dynamic counts disabled to keep static values requested (23, 113, 11)
-    /*
-    const sections = ['faculty', 'rooms', 'schedules'];
-    for (const section of sections) {
-        try {
-            const res = await fetch(`api/${section}.php`);
-            const data = await res.json();
-            const countId = section === 'faculty' ? 'facultyCount' : (section === 'rooms' ? 'roomCount' : 'scheduleCount');
-            const el = document.getElementById(countId);
-            if (el) el.textContent = data.length;
-        } catch (e) {
-            console.error(`Failed to load count for ${section}`, e);
-        }
+    try {
+        const [facultyRes, roomsRes, schedulesRes] = await Promise.all([
+            fetch('/api/faculty'),
+            fetch('/api/rooms'),
+            fetch('/api/schedules')
+        ]);
+        const facultyData = await facultyRes.json();
+        const roomsData = await roomsRes.json();
+        const schedulesData = await schedulesRes.json();
+
+        const facultyEl = document.getElementById('facultyCount');
+        const roomEl = document.getElementById('roomCount');
+        const schedEl = document.getElementById('scheduleCount');
+
+        if (facultyEl) facultyEl.textContent = Array.isArray(facultyData) ? facultyData.length : 0;
+        if (roomEl) roomEl.textContent = Array.isArray(roomsData) ? roomsData.length : 0;
+        if (schedEl) schedEl.textContent = Array.isArray(schedulesData) ? schedulesData.length : 0;
+    } catch (e) {
+        console.error('Failed to load counts', e);
     }
-    */
 }
 
-async function deleteItem(section, id) {
-    if (!confirm('Are you sure you want to delete this?')) return;
-    const res = await fetch(`/api/${section}/${id}`, { method: 'DELETE' });
-    const result = await res.json();
-    if (result.success) {
-        if (section === 'subjects') {
-            loadScheduleCombinedData();
-            populateSubjectDropdowns();
-        } else if (section === 'rooms') {
-            loadScheduleCombinedData();
-            populateRoomDropdowns();
-        } else if (section === 'faculty') {
-            loadTeacherManagementTable();
+let pendingDelete = { section: null, id: null };
+
+function deleteItem(section, id) {
+    const itemLabel = section === 'rooms' ? 'ComLab Room' : section === 'subjects' ? 'Subject' : section === 'faculty' ? 'Teacher' : 'Item';
+    pendingDelete = { section, id };
+    
+    const modal = document.getElementById('deleteModalOverlay');
+    const message = document.getElementById('deleteModalMessage');
+    if (modal && message) {
+        message.textContent = `Are you sure you want to delete this ${itemLabel}? This action cannot be undone and will permanently remove it from the system.`;
+        modal.style.display = 'flex';
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModalOverlay');
+    if (modal) modal.style.display = 'none';
+    pendingDelete = { section: null, id: null };
+}
+
+async function confirmDelete() {
+    const { section, id } = pendingDelete;
+    if (!section || !id) return;
+
+    // Optional: disable buttons or show loading state
+    const deleteBtn = document.querySelector('#deleteModalOverlay .btn-modal-save');
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting...';
+    }
+
+    try {
+        const res = await fetch(`/api/${section}/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken }
+        });
+
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const result = await res.json();
+
+        if (result.success) {
+            closeDeleteModal();
+            if (section === 'subjects') {
+                loadScheduleCombinedData();
+                populateSubjectDropdowns();
+            } else if (section === 'rooms') {
+                loadScheduleCombinedData();
+                populateCombinedFilter();
+                populateRoomDropdowns();
+            } else if (section === 'faculty') {
+                loadTeacherManagementTable();
+            } else {
+                loadSectionData(section);
+            }
+            loadCounts();
         } else {
-            loadSectionData(section);
+            showToast(`Failed to delete: ` + (result.error || 'Unknown error'), 'error');
+            closeDeleteModal();
         }
-        loadCounts();
+    } catch (err) {
+        console.error(err);
+        showToast(`Network error. Could not delete item.`, 'error');
+        closeDeleteModal();
+    } finally {
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Yes, Delete';
+        }
     }
 }
 
@@ -1555,17 +1652,28 @@ async function loadScheduleCombinedData() {
 
         try {
             const res = await fetch('/api/rooms');
+            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
             const rooms = await res.json();
 
             tbody.innerHTML = '';
+
+            if (!Array.isArray(rooms) || rooms.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No ComLab rooms found. Click "Add ComLab" to create one.</td></tr>';
+                return;
+            }
+
             rooms.forEach(room => {
                 const tr = document.createElement('tr');
+                const safeName = (room.name || '').replace(/COMPLAB/g, 'COMLAB');
+                const safeCampus = room.campus || 'Main Campus';
+                const escapedName = safeName.replace(/'/g, "\\'");
+                const escapedCampus = safeCampus.replace(/'/g, "\\'");
                 tr.innerHTML = `
-                    <td class="room-name-cell">${room.name.replace(/COMPLAB/g, 'COMLAB')}</td>
-                    <td class="campus-cell">${room.type || 'Main Campus'}</td>
+                    <td class="room-name-cell">${safeName}</td>
+                    <td class="campus-cell">${safeCampus}</td>
                     <td class="action-cell">
                         <div class="action-btn-group">
-                            <span class="icon-edit-new" onclick="openEditRoomModal(${room.id}, '${room.name.replace(/'/g, "\\'")}', '${(room.type || '').replace(/'/g, "\\'")}')">
+                            <span class="icon-edit-new" onclick="openEditRoomModal(${room.id}, '${escapedName}', '${escapedCampus}')" title="Edit">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                             </span>
                             <span class="icon-delete-new" onclick="deleteItem('rooms', ${room.id})">
@@ -1651,8 +1759,11 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
 
     const code = document.getElementById('sm_code').value;
     const name = document.getElementById('sm_name').value;
-    const units = parseInt(document.getElementById('sm_units').value) || 3;
-    const roomId = document.getElementById('sm_room').value;
+    const unitsInput = document.getElementById('sm_units');
+    const roomInput = document.getElementById('sm_room');
+    
+    const units = unitsInput ? (parseInt(unitsInput.value) || 3) : 3;
+    const roomId = roomInput ? roomInput.value : '';
 
     const errBox = document.getElementById('subjectError');
     if (errBox) errBox.style.display = 'none';
@@ -1660,14 +1771,6 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
     if (!code.trim() || !name.trim()) {
         if (errBox) {
             errBox.textContent = 'Please completely fill out the required Subject Code and Name fields.';
-            errBox.style.display = 'block';
-        }
-        return;
-    }
-
-    if (isNaN(units) || units < 1) {
-        if (errBox) {
-            errBox.textContent = 'Units must be a valid number greater than 0.';
             errBox.style.display = 'block';
         }
         return;
@@ -1700,11 +1803,16 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
         if (result.success) {
             closeSubjectModal();
             loadScheduleCombinedData();
+            populateCombinedFilter();
             populateSubjectDropdowns();
+            loadCounts();
         } else {
             if (errBox) {
                 let errorMsg = result.error || 'Unknown error occurred.';
-                if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.includes('1062')) {
+                if (result.errors) {
+                    errorMsg = Object.values(result.errors).flat().join(' ');
+                }
+                if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.includes('1062') || errorMsg.includes('already been taken')) {
                     errorMsg = 'This Subject Code already exists. Please choose a unique code.';
                 }
                 errBox.textContent = 'Error saving subject: ' + errorMsg;
@@ -1945,14 +2053,14 @@ function closeRoomModal() {
 
 async function saveNewRoom(event, editingId = null) {
     event.preventDefault();
-    const name = document.getElementById('r_name').value;
-    const type = document.getElementById('r_location').value;
-    const capacity = 40; // Default capacity
+    const name = document.getElementById('r_name').value.trim();
+    const location = document.getElementById('r_location').value.trim();
 
     const errBox = document.getElementById('roomError');
     if (errBox) errBox.style.display = 'none';
 
-    if (!name.trim()) {
+    // Client-side validation
+    if (!name) {
         if (errBox) {
             errBox.textContent = 'Please enter a valid Room Name.';
             errBox.style.display = 'block';
@@ -1960,44 +2068,50 @@ async function saveNewRoom(event, editingId = null) {
         return;
     }
 
-    if (!type.trim()) {
+    if (!location) {
         if (errBox) {
-            errBox.textContent = 'Please select a Location for the ComLab.';
+            errBox.textContent = 'Please select a Campus location for the ComLab.';
             errBox.style.display = 'block';
         }
         return;
     }
 
-    const method = editingId ? 'PUT' : 'POST';
-    const url = editingId ? `/api/rooms/${editingId}` : '/api/rooms';
+    const isEditing = !!editingId;
+    const method = isEditing ? 'PUT' : 'POST';
+    const url = isEditing ? `/api/rooms/${editingId}` : '/api/rooms';
 
     try {
         const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            body: JSON.stringify({ name, type, capacity })
+            body: JSON.stringify({ name, location })
         });
 
         if (!res.ok) {
-            throw new Error(`HTTP Error: ${res.status}`);
+            const errText = await res.text();
+            throw new Error(`HTTP ${res.status}: ${errText}`);
         }
 
         const result = await res.json();
+
         if (result.success) {
             closeRoomModal();
-            if (currentSection === 'rooms') {
-                loadScheduleCombinedData();
-            } else {
-                loadSectionData('rooms');
-            }
+            // Always reload the ComLabs & Subjects page data
+            loadScheduleCombinedData();
+            populateCombinedFilter();
             populateRoomDropdowns();
+            loadCounts();
         } else {
             if (errBox) {
                 let errorMsg = result.error || 'Unknown error occurred.';
                 if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.includes('1062')) {
                     errorMsg = 'This Room Name already exists. Please choose a unique name.';
+                } else if (result.errors) {
+                    // Handle Laravel validation errors
+                    const firstErr = Object.values(result.errors)[0];
+                    errorMsg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
                 }
-                errBox.textContent = 'Error saving room: ' + errorMsg;
+                errBox.textContent = 'Error: ' + errorMsg;
                 errBox.style.display = 'block';
             }
         }
