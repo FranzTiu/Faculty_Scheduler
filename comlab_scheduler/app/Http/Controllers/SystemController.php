@@ -327,13 +327,15 @@ class SystemController extends Controller
     public function getSubjects()
     {
         $semester = $this->resolveSemester(request());
+
         return response()->json(Subject::where('semester_id', $semester->id)->orderBy('subject_code', 'asc')->get()->map(function ($s) {
             return [
                 'id' => $s->id,
                 'code' => $s->subject_code,
                 'name' => $s->subject_name,
                 'year_level' => $s->year_level,
-                'units' => 3,
+                'units' => $s->units ?? 3,
+                'room_id' => $s->room_id,
             ];
         }));
     }
@@ -341,28 +343,32 @@ class SystemController extends Controller
     {
         $semester = $this->resolveSemester($request);
 
-        $request->validate([
-            'code' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('subjects', 'subject_code')->where(fn ($q) => $q->where('semester_id', $semester->id)),
-            ],
-            'name' => 'required|string|max:255',
-            'year_level' => 'nullable|integer|min:1|max:4',
-        ]);
+        try {
+            $request->validate([
+                'code' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('subjects', 'subject_code')->where(fn ($q) => $q->where('semester_id', $semester->id)),
+                ],
+                'name' => 'required|string|max:255',
+                'year_level' => 'nullable|integer|min:1|max:4',
+                'room_id' => 'nullable|integer|exists:rooms,id',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["success" => false, "errors" => $e->errors()], 422);
+        }
 
         try {
             $subject = Subject::create([
-                'semester_id' => $semester->id,
-                'subject_code' => trim($request->code),
-                'subject_name' => trim($request->name),
-                'year_level' => $request->year_level ? intval($request->year_level) : null,
+                'semester_id'   => $semester->id,
+                'subject_code'  => trim($request->code),
+                'subject_name'  => trim($request->name),
+                'year_level'    => $request->year_level ? intval($request->year_level) : null,
+                'room_id'       => $request->room_id ? intval($request->room_id) : null,
             ]);
 
             return response()->json(["success" => true, "id" => $subject->id]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(["success" => false, "errors" => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(["success" => false, "error" => $e->getMessage()], 500);
         }
@@ -395,6 +401,7 @@ class SystemController extends Controller
                 'subject_code' => trim($request->code),
                 'subject_name' => trim($request->name),
                 'year_level' => $request->year_level ? intval($request->year_level) : null,
+                'room_id' => $request->room_id ? intval($request->room_id) : null,
             ]);
 
             return response()->json(["success" => true]);
@@ -609,14 +616,11 @@ class SystemController extends Controller
             ->orderBy('day')->orderBy('time_start')->get();
 
         $labs = [];
-        $others = [];
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
         foreach ($schedules as $s) {
             if (!$s->room)
                 continue;
             $r_name = strtoupper($s->room->room_name);
-            $isLab = str_starts_with($r_name, 'COMLAB') || str_starts_with($r_name, 'COMPLAB');
 
             $item = [
                 'room_name' => $s->room->room_name,
@@ -629,20 +633,9 @@ class SystemController extends Controller
                 'section' => $s->section ? $s->section->section : null
             ];
 
-            if ($isLab) {
-                if (!isset($labs[$r_name]))
-                    $labs[$r_name] = [];
-                if (!isset($labs[$r_name][$s->day]))
-                    $labs[$r_name][$s->day] = [];
-                $labs[$r_name][$s->day][] = $item;
-            }
-            else {
-                if (!isset($others[$r_name]))
-                    $others[$r_name] = [];
-                if (!isset($others[$r_name][$s->day]))
-                    $others[$r_name][$s->day] = [];
-                $others[$r_name][$s->day][] = $item;
-            }
+            if (!isset($labs[$r_name]))
+                $labs[$r_name] = [];
+            $labs[$r_name][] = $item;
         }
 
         uksort($labs, function ($a, $b) {
@@ -651,11 +644,6 @@ class SystemController extends Controller
             return $numA <=> $numB;
         });
 
-        ksort($others);
-
-        return response()->json([
-            'labs' => $labs,
-            'others' => $others
-        ]);
+        return response()->json($labs);
     }
 }

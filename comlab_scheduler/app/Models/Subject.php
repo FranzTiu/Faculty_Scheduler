@@ -11,7 +11,7 @@ class Subject extends Model
 
     protected $table = 'subjects';
     protected $primaryKey = 'id';
-    protected $fillable = ['semester_id', 'subject_code', 'subject_name', 'year_level'];
+    protected $fillable = ['semester_id', 'subject_code', 'subject_name', 'year_level', 'room_id'];
 
     public function schedules()
     {

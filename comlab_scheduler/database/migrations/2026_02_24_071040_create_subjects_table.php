@@ -12,9 +12,15 @@ return new class extends Migration {
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
-            $table->string('subject_code')->unique();
+            $table->foreignId('semester_id')->nullable()->constrained('semesters')->nullOnDelete();
+            $table->string('subject_code');
             $table->string('subject_name');
+            $table->unsignedTinyInteger('year_level')->nullable();
+            $table->unsignedInteger('units')->default(3);
+            $table->foreignId('room_id')->nullable()->constrained('rooms')->nullOnDelete();
             $table->timestamps();
+
+            $table->unique(['semester_id', 'subject_code'], 'subjects_semester_code_unique');
         });
     }
 

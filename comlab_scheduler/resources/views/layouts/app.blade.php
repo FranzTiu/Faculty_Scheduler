@@ -211,7 +211,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     </script>
-    <script src="{{ asset('assets/app.js') }}?v=4.6"></script>
+    <script src="{{ asset('assets/app.js') }}?v=4.7"></script>
     @stack('scripts')
 </body>
 

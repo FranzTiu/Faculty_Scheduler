@@ -71,12 +71,16 @@ function withSemester(url) {
             if (sid) u.searchParams.set('semester_id', sid);
             return u.pathname + (u.search ? u.search : '');
         }
-    } catch (e) {}
+    } catch (e) { }
     return url;
 }
 
 async function apiFetch(url, options = {}) {
-    return fetch(withSemester(url), options);
+    const headers = {
+        'Accept': 'application/json',
+        ...(options.headers || {})
+    };
+    return fetch(withSemester(url), { ...options, headers });
 }
 
 async function deleteSemesterDialog(id, label) {
@@ -90,11 +94,11 @@ async function deleteSemesterDialog(id, label) {
                 }
             });
             const data = await res.json();
-            
+
             if (data.success) {
                 // Remove the stored selected ID since the active semester might have shifted
                 storeSemesterId('');
-                
+
                 // Optional: trigger full page refresh to resync everything uniformly
                 window.location.reload();
             } else {
@@ -172,7 +176,7 @@ async function initSemesters() {
             delBtn.style.justifyContent = 'center';
             delBtn.style.transition = 'all 0.2s';
             delBtn.title = 'Delete Semester';
-            
+
             delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
             delBtn.onmouseout = () => delBtn.style.background = 'transparent';
 
@@ -260,7 +264,7 @@ async function handleSemesterChange(sourceId = 'semesterSelect') {
         const res = await fetch(`/api/semesters?semester_id=${id}`);
         const data = await res.json();
         if (data?.current) selectedSemesterMeta = data.current;
-    } catch (e) {}
+    } catch (e) { }
 
     applyCurriculumRestrictions();
 
@@ -323,7 +327,7 @@ document.getElementById('semesterForm')?.addEventListener('submit', async (e) =>
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: JSON.stringify({ term, school_year: sy, use_default_curriculum: useDefault })
         });
-        
+
         let data;
         const text = await res.text();
         try {
@@ -346,7 +350,7 @@ document.getElementById('semesterForm')?.addEventListener('submit', async (e) =>
         if (data.semester?.id) storeSemesterId(data.semester.id);
         await initSemesters();
         // Force refresh all grids after adding
-        await handleSemesterChange('semesterSelect'); 
+        await handleSemesterChange('semesterSelect');
         showToast('Semester created successfully!', 'success');
     } catch (e2) {
         console.error(e2);
@@ -386,7 +390,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const pInput = document.getElementById('password');
     const uValue = uInput.value.trim();
     const pValue = pInput.value.trim();
-    
+
     const err = document.getElementById('loginError');
     const uErr = document.getElementById('usernameError');
     const pErr = document.getElementById('passwordError');
@@ -420,8 +424,8 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
 
         const res = await fetch('/api/login', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
+            headers: {
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
@@ -455,7 +459,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
                     err.classList.remove('hidden');
                     uInput.classList.add('input-error');
                     pInput.classList.add('input-error');
-                    
+
                     setTimeout(() => {
                         err.classList.add('hidden');
                     }, 2000);
@@ -489,7 +493,7 @@ document.getElementById('passwordToggle')?.addEventListener('click', function ()
 document.getElementById('forgotPasswordBtn')?.addEventListener('click', () => {
     const loginSec = document.getElementById('loginSection');
     const forgotSec = document.getElementById('forgotPasswordSection');
-    
+
     loginSec?.classList.add('hidden');
     forgotSec?.classList.remove('hidden');
     forgotSec?.classList.remove('auth-section-animate');
@@ -514,14 +518,14 @@ document.getElementById('forgotPasswordForm')?.addEventListener('submit', async 
     const uInput = document.getElementById('resetUsername');
     const pInput = document.getElementById('resetPassword');
     const cInput = document.getElementById('resetPassword_confirmation');
-    
+
     const uValue = uInput.value.trim();
     const pValue = pInput.value.trim();
     const cValue = cInput.value.trim();
-    
+
     const err = document.getElementById('forgotError');
     const success = document.getElementById('forgotSuccess');
-    
+
     // Field error placeholders
     const uErr = document.getElementById('resetUsernameError');
     const pErr = document.getElementById('resetPasswordError');
@@ -530,7 +534,7 @@ document.getElementById('forgotPasswordForm')?.addEventListener('submit', async 
     // Reset errors & indicators
     err.style.display = 'none';
     success.style.display = 'none';
-    
+
     [uErr, pErr, cErr].forEach(el => el.classList.add('hidden'));
     [uInput, pInput, cInput].forEach(el => el.classList.remove('input-error'));
 
@@ -553,33 +557,33 @@ document.getElementById('forgotPasswordForm')?.addEventListener('submit', async 
         pInput.classList.add('input-error');
         hasError = true;
     }
-    
+
     if (pValue !== cValue) {
         cErr.textContent = "Passwords do not match!";
         cErr.classList.remove('hidden');
         cInput.classList.add('input-error');
         hasError = true;
     }
-    
+
     if (hasError) return;
 
     try {
         const res = await fetch('/reset-password', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
+            headers: {
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ 
-                username: uValue, 
-                password: pValue, 
-                password_confirmation: cValue 
+            body: JSON.stringify({
+                username: uValue,
+                password: pValue,
+                password_confirmation: cValue
             })
         });
 
         const data = await res.json();
-        
+
         if (data.success) {
             // Show fields in green for a second before switching
             [uInput, pInput, cInput].forEach(el => el.classList.add('input-success'));
@@ -593,17 +597,17 @@ document.getElementById('forgotPasswordForm')?.addEventListener('submit', async 
                 forgotSec?.classList.add('hidden');
                 loginSec?.classList.remove('hidden');
                 loginSec?.classList.remove('auth-section-animate');
-                void loginSec.offsetWidth; 
+                void loginSec.offsetWidth;
                 loginSec?.classList.add('auth-section-animate');
-                
+
                 // Show success message on the LOGIN form
                 postResetMsg?.classList.remove('hidden');
-                
+
                 // Hide post-reset success after 2 seconds
                 setTimeout(() => {
                     postResetMsg?.classList.add('hidden');
                 }, 2000);
-                
+
                 // Cleanup inputs
                 [uInput, pInput, cInput].forEach(el => {
                     el.value = '';
@@ -636,7 +640,7 @@ document.getElementById('forgotPasswordForm')?.addEventListener('submit', async 
                 } else {
                     err.textContent = data.message || "Failed to reset password.";
                     err.classList.remove('hidden');
-                    
+
                     // Hide error after 2 seconds
                     setTimeout(() => {
                         err.classList.add('hidden');
@@ -1340,17 +1344,17 @@ async function loadTeacherManagementTable() {
         const facultyData = await facultyRes.json();
         const scheduleGrouped = await scheduleRes.json();
         const filterStatus = document.getElementById('teacherStatusFilter')?.value || 'all';
-        const filterName   = document.getElementById('teacherNameFilter')?.value   || 'all';
+        const filterName = document.getElementById('teacherNameFilter')?.value || 'all';
 
         // --- Populate Teacher Name dropdown (once, or whenever faculty list may have changed) ---
         const nameOptionsDiv = document.getElementById('teacherNameOptions');
-        const nameSelect     = document.getElementById('teacherNameFilter');
-        const nameTextEl     = document.getElementById('selectedTeacherNameText');
+        const nameSelect = document.getElementById('teacherNameFilter');
+        const nameTextEl = document.getElementById('selectedTeacherNameText');
         if (nameOptionsDiv && nameSelect) {
             const currentNameVal = nameSelect.value || 'all';
             nameSelect.innerHTML = '<option value="all">All Teachers</option>';
             let nameOptHtml = `<div class="custom-option ${currentNameVal === 'all' ? 'selected' : ''}" data-value="all"
-                onclick="selectCustomOption('all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
+        ]onclick="selectCustomOption('all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                 All Teachers</div>`;
 
             facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
@@ -1374,7 +1378,7 @@ async function loadTeacherManagementTable() {
             const employmentStatus = teacher.employment_status || 'Full-time';
             // Apply both filters
             if (filterStatus !== 'all' && employmentStatus !== filterStatus) return;
-            if (filterName   !== 'all' && teacher.name   !== filterName)   return;
+            if (filterName !== 'all' && teacher.name !== filterName) return;
 
             if (teacherSchedules.length === 0) {
                 // Teacher with no schedules
@@ -1600,7 +1604,7 @@ let pendingDelete = { section: null, id: null };
 function deleteItem(section, id) {
     const itemLabel = section === 'rooms' ? 'ComLab Room' : section === 'subjects' ? 'Subject' : section === 'faculty' ? 'Teacher' : 'Item';
     pendingDelete = { section, id };
-    
+
     const modal = document.getElementById('deleteModalOverlay');
     const message = document.getElementById('deleteModalMessage');
     if (modal && message) {
@@ -1734,7 +1738,9 @@ async function renderSchedulesVisualGrid() {
     // Flatten schedules for easier processing
     let allSchedules = [];
     Object.values(groupedSchedules).forEach(list => {
-        allSchedules = allSchedules.concat(list);
+        if (Array.isArray(list)) {
+            allSchedules = allSchedules.concat(list);
+        }
     });
 
     // Get unique list of labs from both sources
@@ -1937,10 +1943,10 @@ function populateYearLevelFilter() {
 
     selectedText.textContent =
         currentVal === '1' ? 'First Year' :
-        currentVal === '2' ? 'Second Year' :
-        currentVal === '3' ? 'Third Year' :
-        currentVal === '4' ? 'Fourth Year' :
-        'All Year Levels';
+            currentVal === '2' ? 'Second Year' :
+                currentVal === '3' ? 'Third Year' :
+                    currentVal === '4' ? 'Fourth Year' :
+                        'All Year Levels';
 }
 
 function switchCombinedView(view) {
@@ -1954,7 +1960,7 @@ function switchCombinedView(view) {
     const addBtn = document.getElementById('combinedAddBtn');
     const yearDropdown = document.getElementById('yearLevelDropdown');
     const filterDropdown = document.getElementById('combinedFilterDropdown');
-    
+
     if (view === 'comlabs') {
         addBtn.textContent = 'Add ComLab';
         addBtn.setAttribute('onclick', 'openEditRoomModal()');
@@ -2087,10 +2093,10 @@ async function loadScheduleCombinedData() {
     } else {
         // --- SUBJECTS VIEW ---
         header.innerHTML = `
-                <th>Subject Code</th>
-                <th>Subject Name</th>
-                <th>Action</th>
-            `;
+            <th>Subject Code</th>
+            <th>Subject Name</th>
+            <th>Action</th>
+        `;
 
         try {
             const res = await apiFetch('/api/subjects');
@@ -2105,22 +2111,28 @@ async function loadScheduleCombinedData() {
                 }
 
                 const tr = document.createElement('tr');
-                const codeEsc = (sub.code || '').replace(/'/g, "\\'");
-                const nameEsc = (sub.name || '').replace(/'/g, "\\'");
                 tr.innerHTML = `
-                        <td class="subject-code-cell">${sub.code}</td>
-                        <td class="subject-name-cell">${sub.name}</td>
-                        <td class="action-cell">
-                            <div class="action-btn-group">
-                                <span class="icon-edit-new" onclick="openSubjectModal(${sub.id}, '${codeEsc}', '${nameEsc}', ${sub.units}, ${sub.year_level || 'null'})">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                                </span>
-                                <span class="icon-delete-new" onclick="deleteItem('subjects', ${sub.id})">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                                </span>
-                            </div>
-                        </td>
-                    `;
+                    <td class="code-cell font-mono font-bold">${sub.code}</td>
+                    <td class="name-cell">${sub.name}</td>
+                    <td class="action-cell">
+                        <div class="action-btn-group flex justify-center !gap-3">
+                            <button class="action-btn edit-btn" onclick='openSubjectModal(${JSON.stringify(sub)})' title="Edit Subject">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="action-btn delete-btn" onclick="deleteItem('subjects', ${sub.id})" title="Delete Subject">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
                 tbody.appendChild(tr);
             });
         } catch (e) { console.error(e); }
@@ -2128,7 +2140,15 @@ async function loadScheduleCombinedData() {
 }
 
 // Subject Modal Logic
-async function openSubjectModal(id = null, code = '', name = '', units = 3, yearLevel = null) {
+async function openSubjectModal(subjectOrId = null, code = '', name = '', yearLevel = null) {
+    let id = subjectOrId;
+    if (subjectOrId && typeof subjectOrId === 'object') {
+        id = subjectOrId.id;
+        code = subjectOrId.code || '';
+        name = subjectOrId.name || '';
+        yearLevel = subjectOrId.year_level;
+    }
+
     editingSubjectId = id;
     document.getElementById('subjectModalOverlay').style.display = 'flex';
     document.getElementById('subjectModalTitle').textContent = id ? 'Edit Subject' : 'Add New Subject';
@@ -2137,7 +2157,6 @@ async function openSubjectModal(id = null, code = '', name = '', units = 3, year
 
     document.getElementById('sm_code').value = code;
     document.getElementById('sm_name').value = name;
-    document.getElementById('sm_units').value = units;
     const yl = document.getElementById('sm_year_level');
     if (yl) yl.value = yearLevel ? String(yearLevel) : '';
 
@@ -2166,11 +2185,9 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
 
     const code = document.getElementById('sm_code').value;
     const name = document.getElementById('sm_name').value;
-    const unitsInput = document.getElementById('sm_units');
     const roomInput = document.getElementById('sm_room');
     const yearLevelInput = document.getElementById('sm_year_level');
-    
-    const units = unitsInput ? (parseInt(unitsInput.value) || 3) : 3;
+
     const roomId = roomInput ? roomInput.value : '';
 
     const errBox = document.getElementById('subjectError');
@@ -2184,7 +2201,7 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
         return;
     }
 
-    const body = { code, name, units };
+    const body = { code, name };
     const yearLevelVal = yearLevelInput ? yearLevelInput.value : '';
     if (yearLevelVal !== '' && yearLevelVal != null) body.year_level = parseInt(yearLevelVal, 10);
     if (roomId) body.room_id = roomId;
@@ -2292,13 +2309,9 @@ async function loadLabGrid() {
         });
 
         allRooms.forEach(labName => {
-            // Filter by dropdown: "all" = all boxes; "OTHER ROOMS" = only boxes not in roomOrder; else = that one room's box
-            if (selectedRoom !== 'all') {
-                if (selectedRoom === 'OTHER ROOMS') {
-                    if (roomOrder.includes(labName)) return;
-                } else if (selectedRoom !== labName) {
-                    return;
-                }
+            // Filter by dropdown
+            if (selectedRoom !== 'all' && selectedRoom !== labName) {
+                return;
             }
 
             const legacyName = labName.replace(/COMLAB/g, 'COMPLAB');

@@ -73,4 +73,11 @@ Route::middleware('auth')->group(function () {
     // Custom APIs for views
     Route::get('/api/teacher_schedule', [SystemController::class , 'getTeacherSchedule']);
     Route::get('/api/lab_schedule', [SystemController::class , 'getLabSchedule']);
+    Route::get('/api/test-db', function() {
+        return response()->json([
+            'subjects' => App\Models\Subject::count(),
+            'semesters' => App\Models\Semester::count(),
+            'active_semester' => App\Models\Semester::where('is_active', true)->first(),
+        ]);
+    });
 });
