@@ -1512,6 +1512,67 @@ input[type="hidden"] {
     background-color: #f8fafc !important;
 }
 
+/* Modal-Specific Custom Dropdown (Keeping the form input look but with custom behavior) */
+.modal-style-dropdown {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-family: 'Inter', sans-serif;
+}
+
+.modal-style-dropdown .custom-dropdown-selected {
+    background: #f8fafc !important;
+    color: #1e1b4b !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1rem !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 46px;
+    height: 46px;
+}
+
+.modal-style-dropdown .custom-dropdown-selected:hover {
+    border-color: #fbbf24 !important;
+    background: white !important;
+}
+
+.modal-style-dropdown.open .custom-dropdown-selected {
+    border-color: #fbbf24 !important;
+    background: white !important;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1) !important;
+    color: #1e1b4b !important;
+}
+
+.custom-dropdown.open {
+    z-index: 6000 !important;
+}
+
+.modal-style-dropdown .dropdown-icon {
+    color: #94a3b8 !important;
+    transition: transform 0.3s ease;
+}
+
+.modal-style-dropdown.open .dropdown-icon {
+    transform: rotate(180deg) !important;
+    color: #fbbf24 !important;
+}
+
+.modal-style-dropdown .custom-dropdown-options {
+    top: calc(100% + 4px);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    z-index: 5500 !important; /* Above the modal */
+}
+
+.modal-style-dropdown .custom-option.selected {
+    background: #f1f5f9 !important;
+    color: #fbbf24 !important;
+    font-weight: 700;
+}
+
 .filter-btn,
 .filter-dropdown-navy {
     background: #1e1b4b !important;

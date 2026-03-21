@@ -90,13 +90,24 @@
                     </div>
                     <div class="form-group">
                         <label>Year Level</label>
-                        <select id="sm_year_level" style="font-family: 'Inter', sans-serif;">
-                            <option value="">All / Not Set</option>
-                            <option value="1">First Year</option>
-                            <option value="2">Second Year</option>
-                            <option value="3">Third Year</option>
-                            <option value="4">Fourth Year</option>
-                        </select>
+                        <div class="custom-dropdown modal-style-dropdown" id="sm_yearLevelDropdown" onclick="toggleCustomDropdown(event, 'sm_yearLevelDropdown')">
+                            <div class="custom-dropdown-selected">
+                                <span id="sm_yearLevelText">Select Year Level</span>
+                                <div class="dropdown-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="custom-dropdown-options">
+                                <div class="custom-option" data-value="" onclick="selectCustomOption(event, '', 'Select Year Level', 'sm_yearLevelDropdown', 'sm_yearLevelText', 'sm_year_level')">Select Year Level</div>
+                                <div class="custom-option" data-value="1" onclick="selectCustomOption(event, '1', 'First Year', 'sm_yearLevelDropdown', 'sm_yearLevelText', 'sm_year_level')">First Year</div>
+                                <div class="custom-option" data-value="2" onclick="selectCustomOption(event, '2', 'Second Year', 'sm_yearLevelDropdown', 'sm_yearLevelText', 'sm_year_level')">Second Year</div>
+                                <div class="custom-option" data-value="3" onclick="selectCustomOption(event, '3', 'Third Year', 'sm_yearLevelDropdown', 'sm_yearLevelText', 'sm_year_level')">Third Year</div>
+                                <div class="custom-option" data-value="4" onclick="selectCustomOption(event, '4', 'Fourth Year', 'sm_yearLevelDropdown', 'sm_yearLevelText', 'sm_year_level')">Fourth Year</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="sm_year_level" value="">
                     </div>
 
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
@@ -126,12 +137,23 @@
                     </div>
                     <div class="form-group">
                         <label>Campus</label>
-                        <select id="r_location" required style="font-family: 'Inter', sans-serif;">
-                            <option value="">Select Campus</option>
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="Young Field">Young Field</option>
-                            <option value="College Building">College Building</option>
-                        </select>
+                        <div class="custom-dropdown modal-style-dropdown" id="r_locationDropdown" onclick="toggleCustomDropdown(event, 'r_locationDropdown')">
+                            <div class="custom-dropdown-selected">
+                                <span id="r_locationText">Select Campus</span>
+                                <div class="dropdown-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="custom-dropdown-options">
+                                <div class="custom-option" data-value="" onclick="selectCustomOption(event, '', 'Select Campus', 'r_locationDropdown', 'r_locationText', 'r_location')">Select Campus</div>
+                                <div class="custom-option" data-value="Main Campus" onclick="selectCustomOption(event, 'Main Campus', 'Main Campus', 'r_locationDropdown', 'r_locationText', 'r_location')">Main Campus</div>
+                                <div class="custom-option" data-value="Young Field" onclick="selectCustomOption(event, 'Young Field', 'Young Field', 'r_locationDropdown', 'r_locationText', 'r_location')">Young Field</div>
+                                <div class="custom-option" data-value="College Building" onclick="selectCustomOption(event, 'College Building', 'College Building', 'r_locationDropdown', 'r_locationText', 'r_location')">College Building</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="r_location" value="">
                     </div>
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
                         <button type="button" class="btn-modal btn-modal-cancel" onclick="closeRoomModal()">Cancel</button>
@@ -177,12 +199,23 @@
                 <form id="semesterForm">
                     <div class="form-group">
                         <label>Semester</label>
-                        <select id="sem_term" required style="font-family: 'Inter', sans-serif;">
-                            <option value="">Select Semester</option>
-                            <option value="1st">1st Semester</option>
-                            <option value="2nd">2nd Semester</option>
-                            <option value="Summer">Summer</option>
-                        </select>
+                        <div class="custom-dropdown modal-style-dropdown" id="sem_termDropdown" onclick="toggleCustomDropdown(event, 'sem_termDropdown')">
+                            <div class="custom-dropdown-selected">
+                                <span id="sem_termText">Select Semester</span>
+                                <div class="dropdown-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="custom-dropdown-options">
+                                <div class="custom-option" data-value="" onclick="selectCustomOption(event, '', 'Select Semester', 'sem_termDropdown', 'sem_termText', 'sem_term')">Select Semester</div>
+                                <div class="custom-option" data-value="1st" onclick="selectCustomOption(event, '1st', '1st Semester', 'sem_termDropdown', 'sem_termText', 'sem_term')">1st Semester</div>
+                                <div class="custom-option" data-value="2nd" onclick="selectCustomOption(event, '2nd', '2nd Semester', 'sem_termDropdown', 'sem_termText', 'sem_term')">2nd Semester</div>
+                                <div class="custom-option" data-value="Summer" onclick="selectCustomOption(event, 'Summer', 'Summer', 'sem_termDropdown', 'sem_termText', 'sem_term')">Summer</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="sem_term" value="">
                     </div>
                     <div class="form-group">
                         <label>School Year</label>
@@ -191,10 +224,21 @@
                     </div>
                     <div class="form-group">
                         <label>Use Default Curriculum</label>
-                        <select id="sem_default" required style="font-family: 'Inter', sans-serif;">
-                            <option value="1">Yes</option>
-                            <option value="0">No</option>
-                        </select>
+                        <div class="custom-dropdown modal-style-dropdown" id="sem_defaultDropdown" onclick="toggleCustomDropdown(event, 'sem_defaultDropdown')">
+                            <div class="custom-dropdown-selected">
+                                <span id="sem_defaultText">Yes</span>
+                                <div class="dropdown-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="custom-dropdown-options">
+                                <div class="custom-option" data-value="1" onclick="selectCustomOption(event, '1', 'Yes', 'sem_defaultDropdown', 'sem_defaultText', 'sem_default')">Yes</div>
+                                <div class="custom-option" data-value="0" onclick="selectCustomOption(event, '0', 'No', 'sem_defaultDropdown', 'sem_defaultText', 'sem_default')">No</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="sem_default" value="1">
                     </div>
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
                         <button type="button" class="btn-modal btn-modal-cancel" onclick="closeAddSemesterModal()">Cancel</button>

@@ -297,6 +297,12 @@ function openAddSemesterModal() {
     const err = document.getElementById('semesterError');
     if (err) err.style.display = 'none';
     if (overlay) overlay.style.display = 'flex';
+    
+    // Set default text for custom dropdowns
+    const termText = document.getElementById('sem_termText');
+    if (termText) termText.textContent = 'Select Semester';
+    const defText = document.getElementById('sem_defaultText');
+    if (defText) defText.textContent = 'Yes';
 }
 
 function closeAddSemesterModal() {
@@ -732,10 +738,21 @@ function openModal(section, options = {}) {
                 </div>
                 <div class="form-group">
                     <label>Employment Status</label>
-                    <select id="m_status" required>
-                        <option value="Full-time" ${statusVal === 'Full-time' ? 'selected' : ''}>Full-time</option>
-                        <option value="Part-Time" ${statusVal === 'Part-Time' ? 'selected' : ''}>Part-Time</option>
-                    </select>
+                    <div class="custom-dropdown modal-style-dropdown" id="m_statusDropdown" onclick="toggleCustomDropdown(event, 'm_statusDropdown')">
+                        <div class="custom-dropdown-selected">
+                            <span id="m_statusText">${statusVal}</span>
+                            <div class="dropdown-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 9l6 6 6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="custom-dropdown-options">
+                            <div class="custom-option" data-value="Full-time" onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'm_statusDropdown', 'm_statusText', 'm_status')">Full-time</div>
+                            <div class="custom-option" data-value="Part-Time" onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'm_statusDropdown', 'm_statusText', 'm_status')">Part-Time</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="m_status" value="${statusVal}">
                 </div>
                 <div class="form-group">
                     <label>Subject Code</label>
@@ -762,10 +779,21 @@ function openModal(section, options = {}) {
                 </div>
                 <div class="form-group">
                     <label>Employment Status</label>
-                    <select id="m_status" required>
-                        <option value="Full-time" ${statusVal === 'Full-time' ? 'selected' : ''}>Full-time</option>
-                        <option value="Part-Time" ${statusVal === 'Part-Time' ? 'selected' : ''}>Part-Time</option>
-                    </select>
+                    <div class="custom-dropdown modal-style-dropdown" id="m_statusDropdown" onclick="toggleCustomDropdown(event, 'm_statusDropdown')">
+                        <div class="custom-dropdown-selected">
+                            <span id="m_statusText">${statusVal}</span>
+                            <div class="dropdown-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 9l6 6 6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="custom-dropdown-options">
+                            <div class="custom-option" data-value="Full-time" onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'm_statusDropdown', 'm_statusText', 'm_status')">Full-time</div>
+                            <div class="custom-option" data-value="Part-Time" onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'm_statusDropdown', 'm_statusText', 'm_status')">Part-Time</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="m_status" value="${statusVal}">
                 </div>
                 <div class="form-group">
                     <label>Add Subject (Optional)</label>
@@ -787,10 +815,21 @@ function openModal(section, options = {}) {
                 </div>
                 <div class="form-group">
                     <label>Employment Status</label>
-                    <select id="m_status" required>
-                        <option value="Full-time">Full-time</option>
-                        <option value="Part-Time">Part-Time</option>
-                    </select>
+                    <div class="custom-dropdown modal-style-dropdown" id="m_statusDropdown" onclick="toggleCustomDropdown(event, 'm_statusDropdown')">
+                        <div class="custom-dropdown-selected">
+                            <span id="m_statusText">Full-time</span>
+                            <div class="dropdown-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 9l6 6 6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="custom-dropdown-options">
+                            <div class="custom-option" data-value="Full-time" onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'm_statusDropdown', 'm_statusText', 'm_status')">Full-time</div>
+                            <div class="custom-option" data-value="Part-Time" onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'm_statusDropdown', 'm_statusText', 'm_status')">Part-Time</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="m_status" value="Full-time">
                 </div>
                 <div class="form-group">
                     <label>Add Subject (Optional)</label>
@@ -847,32 +886,59 @@ function renderScheduleFormStructure() {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group" id="roomGroup">
                 <label>Room</label>
-                <select id="m_room_id" onchange="toggleTypedInput('room')" required>
-                    <option value="">Loading...</option>
-                </select>
+                <div class="custom-dropdown modal-style-dropdown" id="m_roomDropdown" onclick="toggleCustomDropdown(event, 'm_roomDropdown')">
+                    <div class="custom-dropdown-selected">
+                        <span id="m_roomText">Loading...</span>
+                        <div class="dropdown-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 9l6 6 6-6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options" id="m_roomOptions"></div>
+                </div>
+                <input type="hidden" id="m_room_id" value="">
+                
                 <div id="roomTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
                     <input type="text" id="m_room_name" placeholder="e.g. COMLAB 10" style="font-size: 0.85rem;">
                 </div>
             </div>
             <div class="form-group">
                 <label>Day</label>
-                <select id="m_day" required>
-                    <option value="Monday">Monday</option>
-                    <option value="Tuesday">Tuesday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Thursday">Thursday</option>
-                    <option value="Friday">Friday</option>
-                    <option value="Saturday">Saturday</option>
-                    <option value="Sunday">Sunday</option>
-                </select>
+                <div class="custom-dropdown modal-style-dropdown" id="m_dayDropdown" onclick="toggleCustomDropdown(event, 'm_dayDropdown')">
+                    <div class="custom-dropdown-selected">
+                        <span id="m_dayText">Monday</span>
+                        <div class="dropdown-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 9l6 6 6-6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options">
+                        ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => 
+                            `<div class="custom-option" data-value="${day}" onclick="selectCustomOption(event, '${day}', '${day}', 'm_dayDropdown', 'm_dayText', 'm_day')">${day}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                <input type="hidden" id="m_day" value="Monday">
             </div>
         </div>
 
         <div class="form-group" id="subjectGroup">
             <label>Subject</label>
-            <select id="m_subject_id" onchange="toggleTypedInput('subject')" required>
-                <option value="">Loading...</option>
-            </select>
+            <div class="custom-dropdown modal-style-dropdown" id="m_subjectDropdown" onclick="toggleCustomDropdown(event, 'm_subjectDropdown')">
+                <div class="custom-dropdown-selected">
+                    <span id="m_subjectText">Loading...</span>
+                    <div class="dropdown-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="custom-dropdown-options" id="m_subjectOptions"></div>
+            </div>
+            <input type="hidden" id="m_subject_id" value="">
+            
             <div id="subjectTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
                 <input type="text" id="m_subject_code" placeholder="Code (e.g. IT-101)" style="margin-bottom: 5px; font-size: 0.85rem;">
                 <input type="text" id="m_subject_name" placeholder="Subject Name" style="font-size: 0.85rem;">
@@ -881,9 +947,19 @@ function renderScheduleFormStructure() {
 
         <div class="form-group" id="facultyGroup">
             <label>Teacher</label>
-            <select id="m_faculty_id" onchange="toggleTypedInput('faculty')" required>
-                <option value="">Loading...</option>
-            </select>
+            <div class="custom-dropdown modal-style-dropdown" id="m_facultyDropdown" onclick="toggleCustomDropdown(event, 'm_facultyDropdown')">
+                <div class="custom-dropdown-selected">
+                    <span id="m_facultyText">Loading...</span>
+                    <div class="dropdown-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="custom-dropdown-options" id="m_facultyOptions"></div>
+            </div>
+            <input type="hidden" id="m_faculty_id" value="">
+            
             <div id="facultyTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
                 <input type="text" id="m_faculty_name" placeholder="Enter Teacher Name" style="font-size: 0.85rem;">
             </div>
@@ -952,32 +1028,34 @@ function populateScheduleDropdowns(rooms, subjects, faculty) {
         return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const roomSelect = document.getElementById('m_room_id');
-    const subjectSelect = document.getElementById('m_subject_id');
-    const facultySelect = document.getElementById('m_faculty_id');
-
-    if (roomSelect) {
-        roomSelect.innerHTML = `
-            <option value="">Select Room</option>
-            ${rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add Room</option>
-        `;
+    const roomOptions = document.getElementById('m_roomOptions');
+    const roomText = document.getElementById('m_roomText');
+    if (roomText) roomText.textContent = 'Select Room';
+    if (roomOptions) {
+        let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Room\', \'m_roomDropdown\', \'m_roomText\', \'m_room_id\')">Select Room</div>';
+        html += rooms.map(r => `<div class="custom-option" data-value="${r.id}" onclick="selectCustomOption(event, '${r.id}', '${r.name}', 'm_roomDropdown', 'm_roomText', 'm_room_id')">${r.name}</div>`).join('');
+        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add Room', 'm_roomDropdown', 'm_roomText', 'm_room_id')">+ Add Room</div>`;
+        roomOptions.innerHTML = html;
     }
 
-    if (subjectSelect) {
-        subjectSelect.innerHTML = `
-            <option value="">Select Subject</option>
-            ${subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name}</option>`).join('')}
-            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Add New Subject</option>
-        `;
+    const subjectOptions = document.getElementById('m_subjectOptions');
+    const subjectText = document.getElementById('m_subjectText');
+    if (subjectText) subjectText.textContent = 'Select Subject';
+    if (subjectOptions) {
+        let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Subject\', \'m_subjectDropdown\', \'m_subjectText\', \'m_subject_id\')">Select Subject</div>';
+        html += subjects.map(s => `<div class="custom-option" data-value="${s.id}" onclick="selectCustomOption(event, '${s.id}', '${s.code} - ${s.name}', 'm_subjectDropdown', 'm_subjectText', 'm_subject_id')">${s.code} - ${s.name}</div>`).join('');
+        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add New Subject', 'm_subjectDropdown', 'm_subjectText', 'm_subject_id')">+ Add New Subject</div>`;
+        subjectOptions.innerHTML = html;
     }
 
-    if (facultySelect) {
-        facultySelect.innerHTML = `
-            <option value="">Select Teacher</option>
-            ${faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
-            <option value="other" style="color: #4f46e5; font-weight: 800;">+ Type New Teacher</option>
-        `;
+    const facultyOptions = document.getElementById('m_facultyOptions');
+    const facultyText = document.getElementById('m_facultyText');
+    if (facultyText) facultyText.textContent = 'Select Teacher';
+    if (facultyOptions) {
+        let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Teacher\', \'m_facultyDropdown\', \'m_facultyText\', \'m_faculty_id\')">Select Teacher</div>';
+        html += faculty.map(f => `<div class="custom-option" data-value="${f.id}" onclick="selectCustomOption(event, '${f.id}', '${f.name}', 'm_facultyDropdown', 'm_facultyText', 'm_faculty_id')">${f.name}</div>`).join('');
+        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add New Teacher', 'm_facultyDropdown', 'm_facultyText', 'm_faculty_id')">+ Add New Teacher</div>`;
+        facultyOptions.innerHTML = html;
     }
 }
 
@@ -1354,14 +1432,14 @@ async function loadTeacherManagementTable() {
             const currentNameVal = nameSelect.value || 'all';
             nameSelect.innerHTML = '<option value="all">All Teachers</option>';
             let nameOptHtml = `<div class="custom-option ${currentNameVal === 'all' ? 'selected' : ''}" data-value="all"
-        ]onclick="selectCustomOption('all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
+                onclick="selectCustomOption(event,'all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                 All Teachers</div>`;
 
             facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
                 const safeName = teacher.name.replace(/'/g, "\\'");
                 nameSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
                 nameOptHtml += `<div class="custom-option ${currentNameVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}"
-                    onclick="selectCustomOption('${safeName}','${safeName}','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
+                    onclick="selectCustomOption(event, '${safeName}','${safeName}','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                     ${teacher.name}</div>`;
             });
             nameOptionsDiv.innerHTML = nameOptHtml;
@@ -1727,23 +1805,21 @@ async function renderSchedulesVisualGrid() {
         grid.innerHTML = '<div style="grid-column: 1/-1; padding: 4rem; text-align: center; color: #94a3b8; font-size: 1.2rem;">Loading lab schedules...</div>';
     }
 
-    const [roomsRes, schedulesRes] = await Promise.all([
-        apiFetch('/api/rooms'),
-        apiFetch('/api/lab_schedule')
-    ]);
+    try {
+        const [roomsRes, schedulesRes] = await Promise.all([
+            apiFetch('/api/rooms'),
+            apiFetch('/api/lab_schedule')
+        ]);
 
-    const roomsData = await roomsRes.json();
-    const groupedSchedules = await schedulesRes.json();
+        const roomsData = await roomsRes.json();
+        const groupedSchedules = await schedulesRes.json();
 
     // Flatten schedules for easier processing
     let allSchedules = [];
     Object.values(groupedSchedules).forEach(list => {
-        if (Array.isArray(list)) {
-            allSchedules = allSchedules.concat(list);
-        }
+        if (Array.isArray(list)) allSchedules = allSchedules.concat(list);
     });
 
-    // Get unique list of labs from both sources
     const roomNames = new Set(roomsData.map(r => r.name));
     Object.keys(groupedSchedules).forEach(name => roomNames.add(name));
 
@@ -1754,27 +1830,21 @@ async function renderSchedulesVisualGrid() {
         };
         const isALab = a.toUpperCase().includes('COMLAB') || a.toUpperCase().includes('COMPLAB');
         const isBLab = b.toUpperCase().includes('COMLAB') || b.toUpperCase().includes('COMPLAB');
-
         if (isALab && !isBLab) return -1;
         if (!isALab && isBLab) return 1;
-
-        if (isALab && isBLab) {
-            return getLabNum(a) - getLabNum(b);
-        }
-
+        if (isALab && isBLab) return getLabNum(a) - getLabNum(b);
         return a.localeCompare(b, undefined, { numeric: true });
     });
 
-    // Always rebuild filter dropdown to include new rooms
     const previousValue = filter.value;
     filter.innerHTML = '<option value="all">All Schedule</option>';
     sortedRoomNames.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
-        opt.textContent = name.toUpperCase().replace('COMPLAB', 'COMLAB').replace('COMLAB ', 'COMLAB').replace('COMLAB', 'COMLAB ');
+        opt.textContent = name.toUpperCase().replace('COMPLAB', 'COMLAB').replace(/COMLAB /g, 'COMLAB').replace(/COMLAB/g, 'COMLAB ');
         filter.appendChild(opt);
     });
-    // Restore previous selection if it still exists
+
     if ([...filter.options].some(o => o.value === previousValue)) {
         filter.value = previousValue;
     }
@@ -1783,41 +1853,24 @@ async function renderSchedulesVisualGrid() {
     grid.innerHTML = '';
 
     const roomsToShow = selectedFilter === 'all' ? sortedRoomNames : [selectedFilter];
-
     const now = new Date();
     const todayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+    const currentSecs = now.getHours() * 3600 + now.getMinutes() * 60;
 
     roomsToShow.forEach(labName => {
-        const roomSchedules = allSchedules.filter(s => s.room_name === labName);
+        const roomSchedules = allSchedules.filter(s => s.room_name === labName || s.room_name?.replace('COMLAB', 'COMPLAB') === labName || s.room_name?.replace('COMPLAB', 'COMLAB') === labName);
 
         const card = document.createElement('div');
-        card.className = 'lab-card';
-        card.style.border = '2px solid #fbbf24';
-        card.style.borderRadius = '16px';
-        card.style.padding = '1.25rem';
+        card.className = 'lab-card shadow-sm hover:shadow-lg transition-all duration-300';
         card.style.background = 'white';
+        card.style.borderRadius = '20px';
+        card.style.border = '2px solid #fbbf24';
+        card.style.overflow = 'hidden';
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
-        card.style.height = '540px';
-        card.style.maxHeight = '540px';
-        card.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05)';
+        card.style.height = '600px';
 
-        const formatSimpleTime = (t) => {
-            if (!t) return '---';
-            const [hours, minutes] = t.split(':');
-            const h = parseInt(hours);
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            const h12 = h % 12 || 12;
-            return `${h12}:${minutes} ${ampm}`;
-        };
-
-        const getSecs = (timeStr) => {
-            if (!timeStr) return 0;
-            const [h, m] = timeStr.split(':');
-            return parseInt(h) * 3600 + parseInt(m) * 60;
-        };
-
-        const currentSecs = now.getHours() * 3600 + now.getMinutes() * 60;
+        const headerLabel = labName.toUpperCase().replace('COMPLAB', 'COMLAB').replace(/COMLAB /g, 'COMLAB').replace(/COMLAB/g, 'COMLAB ');
 
         let slotsHtml = '';
         if (roomSchedules.length > 0) {
@@ -1830,37 +1883,43 @@ async function renderSchedulesVisualGrid() {
             const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             dayOrder.forEach(day => {
                 if (groupedByDay[day]) {
-                    slotsHtml += `<div style="margin-top: 0.8rem; margin-bottom: 0.6rem; padding-left: 6px; border-left: 3px solid #1e1b4b; font-weight: 900; color: #1e1b4b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">${day}</div>`;
+                    slotsHtml += `<div style="margin: 1rem 0 0.5rem; display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">${day}</span>
+                        <div style="flex-grow: 1; height: 1px; background: #e2e8f0;"></div>
+                    </div>`;
 
-                    groupedByDay[day].forEach(s => {
-                        const timeRange = `${formatSimpleTime(s.start_time)} - ${formatSimpleTime(s.end_time)}`;
-                        const startSecs = getSecs(s.start_time);
-                        const endSecs = getSecs(s.end_time);
-
-                        let isOngoing = (day === todayName) && (currentSecs >= startSecs && currentSecs <= endSecs);
-                        let status = isOngoing ? "ONGOING" : "SCHEDULED";
-                        // Match navy + yellow system palette
-                        let bgColor = isOngoing ? "#fef9c3" : "#f8fafc"; // soft yellow for ongoing, light slate for scheduled
-                        let statusColor = isOngoing ? "#92400e" : "#64748b";
-                        let textWeight = isOngoing ? "900" : "400";
-                        let subWeight = isOngoing ? "900" : "500";
+                    groupedByDay[day].sort((a,b) => a.start_time.localeCompare(b.start_time)).forEach(s => {
+                        const hStart = parseInt(s.start_time.split(':')[0]);
+                        const mStart = s.start_time.split(':')[1];
+                        const tStart = `${hStart % 12 || 12}:${mStart} ${hStart >= 12 ? 'PM' : 'AM'}`;
+                        const hEnd = parseInt(s.end_time.split(':')[0]);
+                        const mEnd = s.end_time.split(':')[1];
+                        const tEnd = `${hEnd % 12 || 12}:${mEnd} ${hEnd >= 12 ? 'PM' : 'AM'}`;
+                        
+                        const startSecs = hStart * 3600 + parseInt(mStart) * 60;
+                        const endSecs = hEnd * 3600 + parseInt(mEnd) * 60;
+                        const isOngoing = (day === todayName) && (currentSecs >= startSecs && currentSecs <= endSecs);
 
                         slotsHtml += `
-                            <div style="background: ${bgColor}; padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 0.6rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(15,23,42,0.06); border-left: 5px solid ${isOngoing ? '#fbbf24' : '#e2e8f0'}; position: relative;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                    <span style="font-size: 0.65rem; font-weight: ${textWeight}; color: ${statusColor}; text-transform: uppercase;">${status}</span>
-                                    <span style="font-size: 0.8rem; font-weight: ${textWeight}; color: #1e1b4b;">${timeRange}</span>
-                                </div>
-                                <div style="margin-bottom: 4px;">
-                                    <h4 style="font-size: 1rem; font-weight: ${subWeight}; color: #1e1b4b; line-height: 1.2; margin: 0;">${s.subject_code} ${s.subject_name}</h4>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                                    <div style="display: flex; align-items: center; gap: 5px; color: #4338ca; font-weight: ${textWeight}; font-size: 0.85rem;">
-                                        👤 ${s.faculty_name.split(' ')[0]}
+                            <div style="background: ${isOngoing ? '#fdf9e7' : '#f8fafc'}; border-radius: 12px; padding: 1rem; margin-bottom: 0.8rem; border: 1px solid ${isOngoing ? '#fbbf24' : '#e2e8f0'}; position: relative;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span style="font-size: 0.6rem; font-weight: 800; color: ${isOngoing ? '#92400e' : '#64748b'};">${isOngoing ? '● ONGOING' : 'SCHEDULED'}</span>
+                                        <span style="font-size: 0.85rem; font-weight: 800; color: #1e1b4b;">${tStart} - ${tEnd}</span>
                                     </div>
-                                    <div style="font-size: 0.8rem; color: #1e1b4b; font-weight: ${textWeight};">
-                                        Sec: ${s.section || '---'}
+                                    <div style="display: flex; gap: 5px;">
+                                        <button onclick="editScheduleItem(${s.id})" style="border: none; background: white; width: 28px; height: 28px; border-radius: 6px; color: #4338ca; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" title="Edit">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                        </button>
+                                        <button onclick="deleteItem('schedule', ${s.id})" style="border: none; background: white; width: 28px; height: 28px; border-radius: 6px; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" title="Delete">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                        </button>
                                     </div>
+                                </div>
+                                <h4 style="font-size: 0.9rem; font-weight: 700; color: #1e1b4b; margin: 0 0 4px 0;">${s.subject_code} ${s.subject_name}</h4>
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #cbd5e1; margin-top: 8px; padding-top: 6px;">
+                                    <span style="font-size: 0.75rem; color: #4338ca; font-weight: 800;">👤 ${s.faculty_name}</span>
+                                    <span style="font-size: 0.75rem; color: #1e1b4b; font-weight: 700;">Sec: ${s.section || '---'}</span>
                                 </div>
                             </div>
                         `;
@@ -1868,31 +1927,43 @@ async function renderSchedulesVisualGrid() {
                 }
             });
         } else {
-            slotsHtml = `
-                <div style="background: white; padding: 3rem 1.5rem; border-radius: 12px; text-align: center; color: #94a3b8; border: 2px dashed #f1f5f9; flex-grow: 1; display: flex; align-items: center; justify-content: center;">
-                    <p style="margin: 0; font-weight: 700; opacity: 0.6;">No Scheduled Classes</p>
-                </div>
-            `;
+            slotsHtml = '<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.85rem; padding: 2rem; text-align: center;">No schedules assigned to this laboratory.</div>';
         }
 
-        const displayTitle = labName.toUpperCase().replace('COMPLAB', 'COMLAB').replace('COMLAB ', 'COMLAB');
-
-        card.innerHTML = `
-            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1rem; color: #1e1b4b; font-weight: 900; letter-spacing: -0.5px;">${displayTitle}</h3>
-            <div style="display: inline-block; margin-bottom: 1rem;">
-                <div style="display: flex; align-items: center; gap: 0.6rem; color: #1e1b4b; border-bottom: 3px solid #fbbf24; padding-bottom: 6px;">
-                    <div style="background: #fbbf24; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 4px 8px rgba(251, 191, 36, 0.2);">
-                        📅
-                    </div>
-                    <strong style="font-size: 1rem; font-family: 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.3px;">Schedules:</strong>
-                </div>
-            </div>
-            <div class="custom-scrollbar" style="display: flex; flex-direction: column; flex-grow: 1; overflow-y: auto; padding: 1.2rem; background: #f8fafc; border-radius: 12px;">
-                ${slotsHtml}
-            </div>
-        `;
+        card.innerHTML = `<h3 style="background: #1e1b4b; color: white; padding: 1rem; margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: 1px; text-align: center;">${headerLabel}</h3>` + `<div class="custom-scrollbar" style="flex-grow: 1; overflow-y: auto; padding: 1rem;">${slotsHtml}</div>`;
         grid.appendChild(card);
     });
+    } catch (e) {
+        console.error("Visual Grid Error:", e);
+        if (grid) grid.innerHTML = '<div style="grid-column: 1/-1; padding: 4rem; text-align: center; color: #ef4444;">Failed to load lab schedules.</div>';
+    }
+}
+
+function loadScheduleVisualData() {
+    renderSchedulesVisualGrid();
+}
+
+async function editScheduleItem(id) {
+    try {
+        const res = await apiFetch('/api/schedules');
+        const schedules = await res.json();
+        const sched = schedules.find(s => s.id == id);
+        if (!sched) return;
+
+        openModal('schedules', {
+            id: sched.id,
+            roomId: sched.room_id,
+            subjectId: sched.subject_id,
+            facultyId: sched.faculty_id,
+            day: sched.day,
+            startTime: sched.start_time,
+            endTime: sched.end_time,
+            section: sched.section
+        });
+    } catch (e) {
+        console.error(e);
+        alert('Failed to load schedule for editing.');
+    }
 }
 
 // Schedule Combined View Logic (ComLabs & Subjects)
@@ -1917,23 +1988,23 @@ function populateYearLevelFilter() {
 
     optionsDiv.innerHTML = `
         <div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all"
-            onclick="selectCustomOption('all', 'All Year Levels', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            onclick="selectCustomOption(event, 'all', 'All Year Levels', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
             All Year Levels
         </div>
         <div class="custom-option ${currentVal === '1' ? 'selected' : ''}" data-value="1"
-            onclick="selectCustomOption('1', 'First Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            onclick="selectCustomOption(event, '1', 'First Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
             First Year
         </div>
         <div class="custom-option ${currentVal === '2' ? 'selected' : ''}" data-value="2"
-            onclick="selectCustomOption('2', 'Second Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            onclick="selectCustomOption(event, '2', 'Second Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
             Second Year
         </div>
         <div class="custom-option ${currentVal === '3' ? 'selected' : ''}" data-value="3"
-            onclick="selectCustomOption('3', 'Third Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            onclick="selectCustomOption(event, '3', 'Third Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
             Third Year
         </div>
         <div class="custom-option ${currentVal === '4' ? 'selected' : ''}" data-value="4"
-            onclick="selectCustomOption('4', 'Fourth Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
+            onclick="selectCustomOption(event, '4', 'Fourth Year', 'yearLevelDropdown', 'selectedYearLevelText', 'yearLevelFilter'); loadScheduleCombinedData();">
             Fourth Year
         </div>
     `;
@@ -2013,15 +2084,15 @@ async function populateCombinedFilter(forceRefetch = false) {
         }
 
         filterHtml = '<option value="all">All Campuses</option>';
-        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Campuses', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Campuses</div>`;
+        optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption(event, 'all', 'All Campuses', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Campuses</div>`;
         _cachedCampusOptions.forEach(campus => {
             filterHtml += `<option value="${campus}">${campus}</option>`;
-            optionsHtml += `<div class="custom-option ${currentVal === campus ? 'selected' : ''}" data-value="${campus}" onclick="selectCustomOption('${campus}', '${campus}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${campus}</div>`;
+            optionsHtml += `<div class="custom-option ${currentVal === campus ? 'selected' : ''}" data-value="${campus}" onclick="selectCustomOption(event, '${campus}', '${campus}', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">${campus}</div>`;
         });
     } else {
         // Subjects view — filter dropdown is hidden anyway
         filterHtml = '<option value="all">All Subjects</option>';
-        optionsHtml = `<div class="custom-option selected" data-value="all" onclick="selectCustomOption('all', 'All Subjects', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Subjects</div>`;
+        optionsHtml = `<div class="custom-option selected" data-value="all" onclick="selectCustomOption(event, 'all', 'All Subjects', 'combinedFilterDropdown', 'selectedCombinedText', 'combinedManagementFilter')">All Subjects</div>`;
     }
 
     filter.innerHTML = filterHtml;
@@ -2157,27 +2228,30 @@ async function openSubjectModal(subjectOrId = null, code = '', name = '', yearLe
 
     document.getElementById('sm_code').value = code;
     document.getElementById('sm_name').value = name;
-    const yl = document.getElementById('sm_year_level');
-    if (yl) yl.value = yearLevel ? String(yearLevel) : '';
-
-    // Populate room dropdown
-    const roomSelect = document.getElementById('sm_room');
-    roomSelect.innerHTML = '<option value="">-- No Room --</option>';
-    try {
-        const res = await apiFetch('/api/rooms');
-        const rooms = await res.json();
-        rooms.forEach(room => {
-            roomSelect.innerHTML += `<option value="${room.id}">${room.name}</option>`;
-        });
-    } catch (e) {
-        console.error('Failed to load rooms for modal', e);
-    }
+    
+    // Custom Year Level Dropdown Initialization
+    const ylText = document.getElementById('sm_yearLevelText');
+    const ylInput = document.getElementById('sm_year_level');
+    let yearLevelLabel = 'Select Year Level';
+    if (yearLevel === '1' || yearLevel === 1) yearLevelLabel = 'First Year';
+    else if (yearLevel === '2' || yearLevel === 2) yearLevelLabel = 'Second Year';
+    else if (yearLevel === '3' || yearLevel === 3) yearLevelLabel = 'Third Year';
+    else if (yearLevel === '4' || yearLevel === 4) yearLevelLabel = 'Fourth Year';
+    
+    if (ylText) ylText.textContent = yearLevelLabel;
+    if (ylInput) ylInput.value = yearLevel ? String(yearLevel) : '';
 }
 
 function closeSubjectModal() {
     document.getElementById('subjectModalOverlay').style.display = 'none';
     document.getElementById('subjectForm').reset();
     editingSubjectId = null;
+    
+    // Reset custom dropdowns
+    const ylText = document.getElementById('sm_yearLevelText');
+    if (ylText) ylText.textContent = 'Select Year Level';
+    const ylInput = document.getElementById('sm_year_level');
+    if (ylInput) ylInput.value = '';
 }
 
 document.getElementById('subjectForm')?.addEventListener('submit', async (e) => {
@@ -2464,7 +2538,13 @@ function openEditRoomModal(id = null, name = '', type = '') {
     if (errBox) errBox.style.display = 'none';
 
     document.getElementById('r_name').value = name;
-    document.getElementById('r_location').value = type;
+    
+    // Custom Location Dropdown Initialization
+    const locText = document.getElementById('r_locationText');
+    const locInput = document.getElementById('r_location');
+    if (locText) locText.textContent = type || 'Select Campus';
+    if (locInput) locInput.value = type || '';
+    
     document.getElementById('roomForm').onsubmit = (e) => saveNewRoom(e, id);
 }
 
@@ -2472,6 +2552,12 @@ function closeRoomModal() {
     document.getElementById('roomModalOverlay').style.display = 'none';
     document.getElementById('roomForm').reset();
     document.getElementById('roomForm').onsubmit = saveNewRoom;
+    
+    // Reset custom location
+    const locText = document.getElementById('r_locationText');
+    if (locText) locText.textContent = 'Select Campus';
+    const locInput = document.getElementById('r_location');
+    if (locInput) locInput.value = '';
 }
 
 async function saveNewRoom(event, editingId = null) {
@@ -2605,7 +2691,10 @@ function toggleCustomDropdown(event, id = 'roomFilterDropdown') {
     dropdown.classList.toggle('open');
 }
 
-function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', textId = 'selectedRoomText', selectId = 'roomFilter') {
+function selectCustomOption(event, value, text, dropdownId = 'roomFilterDropdown', textId = 'selectedRoomText', selectId = 'roomFilter') {
+    if (event && typeof event === 'object' && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+    }
     const dropdown = document.getElementById(dropdownId);
     const selectedText = document.getElementById(textId);
     const hiddenSelect = document.getElementById(selectId);
@@ -2621,6 +2710,9 @@ function selectCustomOption(value, text, dropdownId = 'roomFilterDropdown', text
         } else if (selectId === 'combinedManagementFilter') {
             // Campus filter (ComLabs view) or subjects filter — reload the combined table
             loadScheduleCombinedData();
+        } else if (selectId === 'm_room_id' || selectId === 'm_subject_id' || selectId === 'm_faculty_id') {
+            const type = selectId.split('_')[1]; // room, subject, or faculty
+            toggleTypedInput(type);
         } else if (selectId !== 'semesterSelect' && selectId !== 'heroSemesterSelect') {
             renderSchedulesVisualGrid?.();
         }
@@ -2660,145 +2752,130 @@ async function loadTeacherGrid() {
     if (!grid) return;
 
     try {
-        const [scheduleRes, facultyRes] = await Promise.all([
-            apiFetch('/api/teacher_schedule'),
-            apiFetch('/api/faculty')
+        const [facultyRes, scheduleRes] = await Promise.all([
+            apiFetch('/api/faculty'),
+            apiFetch('/api/teacher_schedule')
         ]);
-        const groupedSchedules = await scheduleRes.json();
-        const facultyList = await facultyRes.json();
 
-        const rawSchedNames = Object.keys(groupedSchedules);
+        const facultyData = await facultyRes.json();
+        const scheduleGrouped = await scheduleRes.json();
+        const selectedTeacher = teacherFilter?.value || 'all';
 
-        // Helper: display label for teacher in UI
-        const getTeacherLabel = (name) => {
-            if (name === 'APOLINAR') return 'Apolinar';
-            return name;
-        };
-
-        // Populate dropdown if empty (except "All")
+        // 1. Filter dropdown population
         if (teacherFilter && (teacherFilter.options.length <= 1 || !document.getElementById('teacherDropdownOptions')?.innerHTML)) {
             const teacherOptionsDiv = document.getElementById('teacherDropdownOptions');
             const currentVal = teacherFilter.value || 'all';
 
             teacherFilter.innerHTML = '<option value="all">All Teacher</option>';
-            let optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption('all', 'All Teacher', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">All Teacher</div>`;
+            let optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption(event, 'all', 'All Teacher', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">All Teacher</div>`;
 
-            // Sort all teachers from faculty list
-            facultyList.sort((a, b) => a.name.localeCompare(b.name));
-
-            facultyList.forEach(teacher => {
+            facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
                 const opt = document.createElement('option');
                 opt.value = teacher.name;
-                opt.textContent = getTeacherLabel(teacher.name);
+                opt.textContent = teacher.name;
                 teacherFilter.appendChild(opt);
 
-                optionsHtml += `<div class="custom-option ${currentVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}" onclick="selectCustomOption('${teacher.name}', '${getTeacherLabel(teacher.name)}', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">${getTeacherLabel(teacher.name)}</div>`;
+                const safeName = teacher.name.replace(/'/g, "\\'");
+                optionsHtml += `<div class="custom-option ${currentVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}" onclick="selectCustomOption(event, '${safeName}', '${safeName}', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">${teacher.name}</div>`;
             });
 
             if (teacherOptionsDiv) teacherOptionsDiv.innerHTML = optionsHtml;
-
-            // Sync visible text
-            const selectedTeacherText = document.getElementById('selectedTeacherText');
-            if (selectedTeacherText) {
-                if (currentVal === 'all') {
-                    selectedTeacherText.textContent = 'All Teacher';
-                } else {
-                    selectedTeacherText.textContent = getTeacherLabel(currentVal);
-                }
-            }
         }
 
-        const selectedTeacher = teacherFilter?.value || 'all';
-
-        // Order names for the table view
-        const priorityOrder = ['Almenario', 'Amago', 'APOLINAR'];
-        const priorityPresent = priorityOrder.filter(n => rawSchedNames.includes(n));
-        const otherNames = rawSchedNames.filter(n => !priorityOrder.includes(n)).sort();
-        const orderedNames = [...priorityPresent, ...otherNames];
-
+        // 2. Build the table with 4 columns
         grid.innerHTML = `
-            <table class="teacher-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Teachers</th>
-                        <th style="width: 35%;">Subjects</th>
-                        <th style="width: 30%;">Sections</th>
-                        <th style="width: 10%;">View</th>
-                    </tr>
-                </thead>
-                <tbody id="teacherTableBody"></tbody>
-            </table>
+            <div class="teacher-table-container bg-white rounded-xl shadow-md p-0 overflow-hidden border border-slate-100">
+                <table class="teacher-manage-table w-full">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Teacher</th>
+                            <th style="width: 35%;">Subject</th>
+                            <th style="width: 30%;">Section</th>
+                            <th style="width: 10%;">View</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherTableBody">
+                    </tbody>
+                </table>
+            </div>
         `;
 
         const tbody = document.getElementById('teacherTableBody');
         tbody.innerHTML = '';
 
-        orderedNames.forEach(teacherName => {
+        facultyData.sort((a, b) => a.name.localeCompare(b.name));
+
+        facultyData.forEach(teacher => {
+            const teacherName = teacher.name;
             if (selectedTeacher !== 'all' && selectedTeacher !== teacherName) return;
 
-            const baseSchedules = groupedSchedules[teacherName];
+            const teacherSchedules = scheduleGrouped[teacherName] || [];
 
-            // Group by subject (combining all sections for that subject)
-            const subjectGroups = {};
-            baseSchedules.forEach(s => {
-                const subjKey = s.subject_code; // Just the code to match image
-                if (!subjectGroups[subjKey]) {
-                    subjectGroups[subjKey] = {
-                        name: `${s.subject_code} \u2013 ${s.subject_name} `,
-                        sections: new Set(),
-                        schedules: []
-                    };
-                }
-                if (s.section) subjectGroups[subjKey].sections.add(s.section);
-                subjectGroups[subjKey].schedules.push(s);
-            });
-
-            const subjects = Object.keys(subjectGroups).sort();
-
-            subjects.forEach((subjKey, idx) => {
+            if (teacherSchedules.length === 0) {
+                // Teacher with no schedules
                 const tr = document.createElement('tr');
-                const group = subjectGroups[subjKey];
-
-                // Teacher Name Cell (only for first row of teacher)
-                if (idx === 0) {
-                    const nameTd = document.createElement('td');
-                    nameTd.className = 'teacher-name-cell';
-                    nameTd.rowSpan = subjects.length;
-                    nameTd.textContent = getTeacherLabel(teacherName);
-                    tr.appendChild(nameTd);
-                }
-
-                // Subject Cell
-                const subjTd = document.createElement('td');
-                subjTd.className = 'subject-cell';
-                subjTd.textContent = group.name;
-                tr.appendChild(subjTd);
-
-                // Section Cell
-                const secTd = document.createElement('td');
-                secTd.className = 'section-cell';
-                secTd.textContent = Array.from(group.sections).sort().join(', ') || 'N/A';
-                tr.appendChild(secTd);
-
-                // View Cell
-                const viewTd = document.createElement('td');
-                viewTd.className = 'view-btn-cell';
-                const btn = document.createElement('button');
-                btn.className = 'view-btn';
-                // Pass the teacher's full schedule to the view
-                btn.onclick = () => viewTeacherSchedule(teacherName, baseSchedules);
-                viewTd.appendChild(btn);
-                tr.appendChild(viewTd);
-
+                tr.innerHTML = `
+                    <td class="teacher-name-cell">${teacherName}</td>
+                    <td class="subject-cell text-slate-400">None</td>
+                    <td class="section-cell text-slate-400">None</td>
+                    <td class="action-cell">
+                        <div class="action-btn-group">
+                            <span class="icon-view-new opacity-40 cursor-not-allowed" title="No schedules">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            </span>
+                        </div>
+                    </td>
+                `;
                 tbody.appendChild(tr);
-            });
-        });
+            } else {
+                // Group schedules by subject
+                const groupedBySubject = {};
+                teacherSchedules.forEach(sched => {
+                    const key = `${sched.subject_code} \u2013 ${sched.subject_name}`;
+                    if (!groupedBySubject[key]) {
+                        groupedBySubject[key] = {
+                            subject: key,
+                            code: sched.subject_code,
+                            sections: new Set()
+                        };
+                    }
+                    if (sched.section) groupedBySubject[key].sections.add(sched.section);
+                });
 
+                const subjectGroups = Object.values(groupedBySubject);
+
+                subjectGroups.forEach((group, index) => {
+                    const tr = document.createElement('tr');
+                    let nameCell = '';
+
+                    if (index === 0) {
+                        nameCell = `<td class="teacher-name-cell" rowspan="${subjectGroups.length}">${teacherName}</td>`;
+                    }
+
+                    const sectionsList = Array.from(group.sections).sort().join(', ') || 'N/A';
+
+                    tr.innerHTML = `
+                        ${nameCell}
+                        <td class="subject-cell">${group.subject}</td>
+                        <td class="section-cell">${sectionsList}</td>
+                        <td class="action-cell">
+                            <div class="action-btn-group">
+                                <span class="icon-view-new" data-teacher-name="${teacherName.replace(/'/g, "\\'")}" data-subject-code="${group.code}" onclick="viewFacultyAssignments(this)" title="View">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                                </span>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        });
     } catch (e) {
-        console.error(e);
-        grid.innerHTML = '<div style="padding: 2rem; color: #ef4444; background: white; text-align: center;">Failed to load teacher schedules.</div>';
+        console.error("Home Teacher View Error:", e);
+        grid.innerHTML = '<div class="p-8 text-center bg-white rounded-xl shadow-md border border-slate-100 text-slate-400">Failed to load teacher schedules.</div>';
     }
 }
+
 
 function renderSlot(classData, label, isTeacher = false) {
     if (!classData) return '';
