@@ -47,40 +47,6 @@ function showToast(message, type = 'success') {
     }, 3500);
 }
 
-// Data Formatting Utility
-function toTitleCase(str) {
-    if (!str) return '';
-    return str.toString()
-        .toLowerCase()
-        .split(' ')
-        .filter(word => word !== '')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
-
-// Global Event Listener for Auto-Formatting (Capitalize first letter of each word)
-document.addEventListener('focusout', function (e) {
-    const target = e.target;
-    if (!target || !target.id) return;
-
-    // List of ID patterns or specific IDs to apply Title Case
-    const titleCaseIds = [
-        'm_name',           // General name field in modal
-        'm_faculty_name',   // Typed teacher name in schedule
-        'm_subject_name',   // Typed subject name
-        'm_room_name',      // Typed room name
-        'r_name',           // ComLab name in dedicated modal
-        'sm_name',          // Subject name in subject-only modal
-        'sm_code',          // Subject code in subject-only modal
-        'm_code',           // Subject code in modal
-        'm_subject_code'    // Typed subject code
-    ];
-
-    if (titleCaseIds.includes(target.id)) {
-        target.value = toTitleCase(target.value);
-    }
-}, true);
-
 // Semester state (always selected)
 let selectedSemesterId = null;
 let selectedSemesterMeta = null;
@@ -229,7 +195,7 @@ async function initSemesters() {
 
             div.onclick = (e) => {
                 if (e) e.stopPropagation();
-                selectCustomOption(e, String(item.id), item.label, p.wrap, p.txt, p.sel);
+                selectCustomOption(String(item.id), item.label, p.wrap, p.txt, p.sel);
                 handleSemesterChange(p.sel);
             };
             oEl.appendChild(div);
@@ -807,7 +773,7 @@ async function openModal(section, options = {}) {
                 </div>
             `;
         } else if (options.id) {
-            // Edit mode for teacher
+            // Edit mode for teacher WITH NO schedules
             editingFacultyId = options.id;
             editingScheduleId = null;
             title.innerHTML = 'Edit Teacher';
@@ -835,8 +801,9 @@ async function openModal(section, options = {}) {
                     <input type="hidden" id="m_status" value="${statusVal}">
                 </div>
                 <div class="form-group">
-                    <label>Subject(s)</label>
+                    <label>Add Subject(s) (Optional)</label>
                     ${subjectsListHtml}
+                </div>
                 </div>
             `;
         } else {
@@ -870,26 +837,24 @@ async function openModal(section, options = {}) {
                     <label>Select Subject(s) (Optional)</label>
                     ${subjectsListHtml}
                 </div>
+                </div>
             `;
         }
 
-        // Fetch and inject subjects asynchronously, pre-checking existing ones for edit mode
+        // Fetch and inject subjects asynchronously to ensure modal opens instantly
         if (!isRowEdit) {
-            const existingSubjectIds = options.existingSubjectIds || [];
             apiFetch('/api/subjects')
                 .then(r => r.json())
                 .then(subjectsList => {
                     const container = document.getElementById('m_subjectsContainer');
                     if (container) {
                         container.innerHTML = `
-                            ${subjectsList.map(s => {
-                                const isChecked = existingSubjectIds.includes(s.id) ? 'checked' : '';
-                                return `
+                            ${subjectsList.map(s => `
                                 <label style="display: flex; align-items: center; cursor: pointer; padding: 0.4rem; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'">
-                                    <input type="checkbox" class="subject-checkbox" value="${s.code}" data-id="${s.id}" data-name="${s.name.replace(/"/g, '&quot;')}" ${isChecked} style="margin-right: 0.8rem; width: 16px; height: 16px; flex: none; cursor: pointer;">
+                                    <input type="checkbox" class="subject-checkbox" value="${s.code}" data-id="${s.id}" data-name="${s.name.replace(/"/g, '&quot;')}" style="margin-right: 0.8rem; width: 16px; height: 16px; flex: none; cursor: pointer;">
                                     <span style="font-weight: 600; font-size: 0.85rem; color: #1e1b4b;">${s.code} <span style="font-weight: 400; color: #64748b;">- ${s.name}</span></span>
                                 </label>
-                            `}).join('')}
+                            `).join('')}
                             ${subjectsList.length === 0 ? '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.5rem;">No subjects available</div>' : ''}
                         `;
                         container.style.padding = '0.5rem';
@@ -1209,24 +1174,16 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
 
     const data = {};
     if (currentSection === 'faculty') {
-        const name = toTitleCase(document.getElementById('m_name').value.trim());
+        const name = document.getElementById('m_name').value;
         const status = document.getElementById('m_status').value;
         
         // Collect multiple selected subjects if available
         const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
-        const rawSelectedSubjects = Array.from(subjectCheckboxes).map(cb => ({
+        const selectedSubjects = Array.from(subjectCheckboxes).map(cb => ({
             id: cb.dataset.id ? parseInt(cb.dataset.id) : 0,
             code: cb.value,
             name: cb.dataset.name
         }));
-
-        // Deduplicate by subject id
-        const seenIds = new Set();
-        const selectedSubjects = rawSelectedSubjects.filter(s => {
-            if (seenIds.has(s.id)) return false;
-            seenIds.add(s.id);
-            return true;
-        });
         
         // Fallback or old UI support
         const subjectInput = document.getElementById('m_subject');
@@ -1308,45 +1265,59 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
                 return;
             }
         } else if (editingFacultyId) {
-            // Edit teacher — sync name, status, and subjects
+            // Edit only teacher (potentially adding their first schedule)
             try {
-                // First, get all existing entries for this teacher by name to delete them
-                const facListRes = await apiFetch('/api/faculty');
-                const allFaculty = await facListRes.json();
-                
-                // Find original name from the entry being edited
-                const editedEntry = allFaculty.find(t => t.id == editingFacultyId);
-                const originalName = editedEntry ? editedEntry.name : name;
-                
-                // Delete all existing entries for this teacher name
-                const entriesToDelete = allFaculty.filter(t => t.name === originalName);
-                for (const entry of entriesToDelete) {
-                    await apiFetch(`/api/faculty/${entry.id}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': csrfToken }
-                    });
+                const facRes = await apiFetch(`/api/faculty/${editingFacultyId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ name, employment_status: status })
+                });
+                const facSaved = await facRes.json();
+
+                if (!facSaved.success) {
+                    if (errBox) {
+                        errBox.textContent = 'Error saving teacher: ' + (facSaved.error || 'Unknown error');
+                        errBox.style.display = 'block';
+                    }
+                    return;
                 }
 
-                // Re-create entries with updated data
+                // If subject was provided for a teacher that had none
+                const section = sectionInput?.value || '';
+                
                 if (selectedSubjects.length > 0) {
                     for (const subj of selectedSubjects) {
-                        await apiFetch('/api/faculty', {
+                        await apiFetch('/api/schedules', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                             body: JSON.stringify({
-                                name,
-                                employment_status: status,
+                                faculty_id: editingFacultyId,
                                 subject_id: subj.id,
                                 subject_code: subj.code,
+                                subject_name: subj.name,
+                                section: section,
+                                room_name: 'TBA',
+                                day: 'Monday',
+                                start_time: '08:00',
+                                end_time: '09:00'
                             })
                         });
                     }
-                } else {
-                    // No subjects selected — create one entry with no subject
-                    await apiFetch('/api/faculty', {
+                } else if (subjectInput && subjectInput.value) {
+                    // Fallback if the dynamically loaded subjects failed
+                    await apiFetch('/api/schedules', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-                        body: JSON.stringify({ name, employment_status: status })
+                        body: JSON.stringify({
+                            faculty_id: editingFacultyId,
+                            subject_code: subjectInput.value,
+                            subject_name: subjectInput.value,
+                            section: section,
+                            room_name: 'TBA',
+                            day: 'Monday',
+                            start_time: '08:00',
+                            end_time: '09:00'
+                        })
                     });
                 }
 
@@ -1364,66 +1335,76 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
                 return;
             }
         } else {
-            // Add new teacher — create one row per selected subject
-            if (selectedSubjects.length > 0) {
-                let allSuccess = true;
-                for (const subj of selectedSubjects) {
-                    const facRes = await apiFetch('/api/faculty', {
+            // Add new teacher
+            const section = sectionInput?.value || '';
+
+            const facRes = await apiFetch('/api/faculty', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify({ name, employment_status: status })
+            });
+            const facSaved = await facRes.json();
+
+            if (facSaved.success) {
+                if (selectedSubjects.length > 0) {
+                    for (const subj of selectedSubjects) {
+                        await apiFetch('/api/schedules', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                            body: JSON.stringify({
+                                faculty_id: facSaved.id,
+                                subject_id: subj.id,
+                                subject_code: subj.code,
+                                subject_name: subj.name,
+                                section: section,
+                                room_name: 'TBA',
+                                day: 'Monday',
+                                start_time: '08:00',
+                                end_time: '09:00'
+                            })
+                        });
+                    }
+                } else if (subjectInput && subjectInput.value) {
+                     await apiFetch('/api/schedules', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                         body: JSON.stringify({
-                            name,
-                            employment_status: status,
-                            subject_id: subj.id,
-                            subject_code: subj.code,
+                            faculty_id: facSaved.id,
+                            subject_code: subjectInput.value,
+                            subject_name: subjectInput.value,
+                            section: section,
+                            room_name: 'TBA',
+                            day: 'Monday',
+                            start_time: '08:00',
+                            end_time: '09:00'
                         })
                     });
-                    const facSaved = await facRes.json();
-                    if (!facSaved.success) {
-                        allSuccess = false;
-                        if (errBox) {
-                            errBox.textContent = 'Error saving: ' + (facSaved.error || 'Unknown error');
-                            errBox.style.display = 'block';
-                        }
-                    }
                 }
-                if (allSuccess) {
-                    closeModal();
-                    loadTeacherManagementTable();
-                }
+            }
+
+            if (facSaved.success) {
+                closeModal();
+                loadTeacherManagementTable();
                 return;
             } else {
-                // No subjects selected — create teacher with no subject
-                const facRes = await apiFetch('/api/faculty', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-                    body: JSON.stringify({ name, employment_status: status })
-                });
-                const facSaved = await facRes.json();
-                if (facSaved.success) {
-                    closeModal();
-                    loadTeacherManagementTable();
-                    return;
-                } else {
-                    if (errBox) {
-                        errBox.textContent = 'Error saving: ' + (facSaved.error || 'Unknown error');
-                        errBox.style.display = 'block';
-                    }
-                    return;
+                if (errBox) {
+                    errBox.textContent = 'Error saving: ' + (facSaved.error || 'Unknown error');
+                    errBox.style.display = 'block';
                 }
+                return;
             }
         }
     }
 
     if (currentSection === 'schedules') {
         data.room_id = document.getElementById('m_room_id').value;
-        data.room_name = toTitleCase(document.getElementById('m_room_name')?.value?.trim() || '');
+        data.room_name = document.getElementById('m_room_name')?.value || '';
         data.day = document.getElementById('m_day').value;
         data.subject_id = document.getElementById('m_subject_id').value;
         data.subject_code = document.getElementById('m_subject_code')?.value || '';
-        data.subject_name = toTitleCase(document.getElementById('m_subject_name')?.value?.trim() || '');
+        data.subject_name = document.getElementById('m_subject_name')?.value || '';
         data.faculty_id = document.getElementById('m_faculty_id').value;
-        data.faculty_name = toTitleCase(document.getElementById('m_faculty_name')?.value?.trim() || '');
+        data.faculty_name = document.getElementById('m_faculty_name')?.value || '';
         data.section = document.getElementById('m_section').value;
 
         // Read time pickers directly if the user hasn't clicked OK
@@ -1511,22 +1492,23 @@ function showSection(sectionId) {
 async function loadTeacherManagementTable() {
     const tbody = document.getElementById('facultyTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">Loading teachers...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5">Loading teachers...</td></tr>';
 
     try {
-        const facultyRes = await apiFetch('/api/faculty');
+        const [facultyRes, scheduleRes] = await Promise.all([
+            apiFetch('/api/faculty'),
+            apiFetch('/api/teacher_schedule')
+        ]);
+
         const facultyData = await facultyRes.json();
+        const scheduleGrouped = await scheduleRes.json();
         const filterStatus = document.getElementById('teacherStatusFilter')?.value || 'all';
         const filterName = document.getElementById('teacherNameFilter')?.value || 'all';
 
-        // --- Populate Teacher Name dropdown ---
+        // --- Populate Teacher Name dropdown (once, or whenever faculty list may have changed) ---
         const nameOptionsDiv = document.getElementById('teacherNameOptions');
         const nameSelect = document.getElementById('teacherNameFilter');
         const nameTextEl = document.getElementById('selectedTeacherNameText');
-
-        // Build unique teacher names for dropdown
-        const uniqueNames = [...new Set(facultyData.map(t => t.name))].sort();
-
         if (nameOptionsDiv && nameSelect) {
             const currentNameVal = nameSelect.value || 'all';
             nameSelect.innerHTML = '<option value="all">All Teachers</option>';
@@ -1534,12 +1516,12 @@ async function loadTeacherManagementTable() {
                 onclick="selectCustomOption(event,'all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                 All Teachers</div>`;
 
-            uniqueNames.forEach(name => {
-                const safeName = name.replace(/'/g, "\\'");
-                nameSelect.innerHTML += `<option value="${name}">${name}</option>`;
-                nameOptHtml += `<div class="custom-option ${currentNameVal === name ? 'selected' : ''}" data-value="${name}"
+            facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
+                const safeName = teacher.name.replace(/'/g, "\\'");
+                nameSelect.innerHTML += `<option value="${teacher.name}">${teacher.name}</option>`;
+                nameOptHtml += `<div class="custom-option ${currentNameVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}"
                     onclick="selectCustomOption(event, '${safeName}','${safeName}','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
-                    ${name}</div>`;
+                    ${teacher.name}</div>`;
             });
             nameOptionsDiv.innerHTML = nameOptHtml;
             nameSelect.value = currentNameVal;
@@ -1548,131 +1530,119 @@ async function loadTeacherManagementTable() {
 
         tbody.innerHTML = '';
 
-        if (!Array.isArray(facultyData) || facultyData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty-state-cell">No Teacher found. Click "Add Teacher" to create one.</td></tr>`;
-            return;
-        }
+        // Render each faculty member
+        facultyData.forEach(teacher => {
+            const teacherSchedules = scheduleGrouped[teacher.name] || [];
 
-        // Group faculty rows by teacher name so same-name teachers show as one block
-        const teacherGroups = {};
-        facultyData.forEach(t => {
-            if (!teacherGroups[t.name]) {
-                teacherGroups[t.name] = {
-                    name: t.name,
-                    employment_status: t.employment_status || 'Full-time',
-                    entries: []
-                };
-            }
-            teacherGroups[t.name].entries.push(t);
-        });
-
-        Object.values(teacherGroups).forEach(group => {
-            const employmentStatus = group.employment_status;
-
-            // Apply filters
+            const employmentStatus = teacher.employment_status || 'Full-time';
+            // Apply both filters
             if (filterStatus !== 'all' && employmentStatus !== filterStatus) return;
-            if (filterName !== 'all' && group.name !== filterName) return;
+            if (filterName !== 'all' && teacher.name !== filterName) return;
 
-            // Collect subject rows (entries that have a subject assigned)
-            const subjectEntries = group.entries.filter(e => e.subject_code);
-            const noSubjectEntries = group.entries.filter(e => !e.subject_code);
-
-            if (subjectEntries.length === 0) {
-                // Teacher with no subjects
-                const firstEntry = group.entries[0];
+            if (teacherSchedules.length === 0) {
+                // Teacher with no schedules
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="teacher-name-cell">${group.name}</td>
-                    <td class="status-cell">${employmentStatus}</td>
-                    <td class="subject-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0;">None</td>
-                    <td class="section-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0;">None</td>
-                    <td class="action-cell" style="vertical-align: middle;">
+                    <td>${teacher.name}</td>
+                    <td>${employmentStatus}</td>
+                    <td>None</td>
+                    <td>None</td>
+                    <td>
                         <div class="action-btn-group flex justify-center !gap-3">
-                            ${getActionIcons(firstEntry.id, group.name, '', null, employmentStatus, '', '')}
+                            ${getActionIcons(teacher.id, teacher.name, '', null, employmentStatus, '', '')}
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             } else {
-                // Teacher with subjects — render one row per subject, rowspan for name/status/action
-                subjectEntries.forEach((entry, idx) => {
-                    const tr = document.createElement('tr');
-
-                    let prefixCells = '';
-
-                    const sectionText = entry.section || 'N/A';
-                    const subjCode = entry.subject_code || '';
-                    const subjName = entry.subject_name || '';
-
-                    if (idx === 0) {
-                        prefixCells = `
-                            <td class="teacher-name-cell" rowspan="${subjectEntries.length}">${group.name}</td>
-                            <td class="status-cell" rowspan="${subjectEntries.length}">${employmentStatus}</td>
-                        `;
+                // Group schedules by subject
+                const groupedBySubject = {};
+                teacherSchedules.forEach(sched => {
+                    const key = `${sched.subject_code} \u2013 ${sched.subject_name}`;
+                    if (!groupedBySubject[key]) {
+                        groupedBySubject[key] = {
+                            subject: key,
+                            code: sched.subject_code,
+                            name: sched.subject_name,
+                            sections: new Set(),
+                            scheduleId: sched.id
+                        };
                     }
-                    const innerBorder = idx < subjectEntries.length - 1 ? 'border-bottom: 1px solid #e2e8f0;' : 'border-bottom: none;';
-
-                    const actionCell = `
-                        <td class="action-cell" style="vertical-align: middle; ${innerBorder}">
-                            <div class="action-btn-group flex justify-center !gap-3">
-                                ${getActionIcons(entry.id, group.name, subjCode, null, employmentStatus, subjName, sectionText)}
-                            </div>
-                        </td>
-                    `;
-
-                    const subjContent = `
-                        <div style="padding: 1.2rem 1rem;">
-                            <div style="font-weight: 800; color: #1e1b4b; font-size: 1.05rem; letter-spacing: 0.02em;">${subjCode}</div>
-                            <div style="font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 4px;">${subjName}</div>
-                        </div>
-                    `;
-
-                    const secContent = `
-                        <div style="padding: 1.2rem 1rem; text-align: center; font-weight: 600; font-size: 0.95rem; color: #1e1b4b;">
-                            ${sectionText}
-                        </div>
-                    `;
-
-                    tr.innerHTML = `
-                        ${prefixCells}
-                        <td class="subject-cell" style="padding: 0; vertical-align: middle; border-right: 1px solid #e2e8f0; ${innerBorder}">${subjContent}</td>
-                        <td class="section-cell" style="padding: 0; vertical-align: middle; border-right: 1px solid #e2e8f0; ${innerBorder}">${secContent}</td>
-                        ${actionCell}
-                    `;
-                    tbody.appendChild(tr);
+                    if (sched.section) groupedBySubject[key].sections.add(sched.section);
                 });
+
+                const subjectGroups = Object.values(groupedBySubject);
+
+                // Teacher with fully grouped schedules into ONE row
+                const tr = document.createElement('tr');
+
+                let subjectsHtml = '';
+                let sectionsHtml = '';
+
+                subjectGroups.forEach((group, idx) => {
+                    const sectionsList = Array.from(group.sections).filter(x => x && x.trim() !== '').join(', ') || 'N/A';
+                    const sCode = group.code || 'None';
+                    const sName = (group.name && group.name !== 'null') ? group.name : '';
+                    
+                    const borderBottom = idx < subjectGroups.length - 1 ? 'border-bottom: 2px solid white;' : '';
+
+                    subjectsHtml += `
+                        <div style="padding: 1.25rem 1rem; ${borderBottom} display: flex; flex-direction: column; justify-content: center; min-height: 80px;">
+                            <div style="font-weight: 800; color: #1e1b4b; font-size: 0.95rem; line-height: 1.2;">${sCode}</div>
+                            ${sName ? `<div style="font-size: 0.85rem; font-style: italic; color: #6b7280; margin-top: 0.25rem;">${sName}</div>` : ''}
+                        </div>
+                    `;
+
+                    sectionsHtml += `
+                        <div style="padding: 1.25rem 1rem; ${borderBottom} display: flex; align-items: center; justify-content: center; min-height: 80px; font-weight: 700; color: #1e1b4b; font-size: 0.9rem;">
+                            ${sectionsList}
+                        </div>
+                    `;
+                });
+
+                // Striped cell background styling to mimic image block
+                tr.innerHTML = `
+                    <td class="teacher-name-cell" style="vertical-align: middle; text-align: center; font-weight: 800; color: #1e1b4b; background-color: #f1f5f9;">
+                        ${teacher.name}
+                    </td>
+                    <td class="status-cell" style="vertical-align: middle; text-align: center; font-weight: 700; color: #1e1b4b; background-color: #f1f5f9;">
+                        ${employmentStatus}
+                    </td>
+                    <td class="subject-cell" style="padding: 0; background-color: #f1f5f9; text-align: left;">
+                        ${subjectsHtml}
+                    </td>
+                    <td class="section-cell" style="padding: 0; background-color: #f8fafc; text-align: center;">
+                        ${sectionsHtml}
+                    </td>
+                    <td class="action-cell" style="vertical-align: middle; text-align: center; background-color: #f1f5f9;">
+                        <div class="action-btn-group flex justify-center !gap-3">
+                            ${getActionIcons(teacher.id, teacher.name, null, null, employmentStatus, '', '')}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
             }
         });
     } catch (e) {
         console.error("Failed to load teacher table", e);
-        tbody.innerHTML = '<tr><td colspan="5" style="color: #ef4444;">Error loading data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="color: #ef4444;">Error loading data</td></tr>';
     }
 }
 
 function getActionIcons(facultyId, teacherName, subjectCode, scheduleId, employmentStatus, subjectLabel, sectionsText) {
-    const escapedTeacherName = (teacherName || '').replace(/'/g, "\\'");
-    const escapedSubjectCode = (subjectCode || '').replace(/'/g, "\\'");
-    const escapedSections = (sectionsText || '').replace(/'/g, "\\'");
-    
-    // Create a descriptive label for the delete confirmation
-    let deleteLabel = escapedTeacherName;
-    if (escapedSubjectCode) {
-        deleteLabel = `${escapedSubjectCode}${escapedSections && escapedSections !== 'N/A' ? ' (' + escapedSections + ')' : ''} assigned to ${escapedTeacherName}`;
-    }
-
     return `
-        <span class="icon-view-new" data-faculty-id="${facultyId}" data-teacher-name="${escapedTeacherName}" data-subject-code="${subjectCode || ''}" onclick="viewFacultyAssignments(this)" title="View">
+        <span class="icon-view-new" data-faculty-id="${facultyId}" data-teacher-name="${teacherName}" data-subject-code="${subjectCode || ''}" onclick="viewFacultyAssignments(this)" title="View">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
         </span>
         <button class="action-btn edit-btn"
               data-faculty-id="${facultyId}"
-              data-faculty-name="${escapedTeacherName}"
+              data-faculty-name="${teacherName || ''}"
               data-schedule-id="${scheduleId || ''}"
               data-employment-status="${employmentStatus || ''}"
-              data-subject="${(subjectLabel || '').replace(/'/g, "\\'")}"
-              data-subject-code="${escapedSubjectCode}"
-              data-subject-name="${(subjectLabel || '').replace(/'/g, "\\'")}"
-              data-sections="${escapedSections}"
+              data-subject="${subjectLabel || ''}"
+              data-subject-code="${subjectCode || ''}"
+              data-subject-name="${subjectLabel || ''}"
+              data-sections="${sectionsText || ''}"
               onclick="editFaculty(this)"
               title="Edit">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1680,7 +1650,7 @@ function getActionIcons(facultyId, teacherName, subjectCode, scheduleId, employm
                 <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
             </svg>
         </button>
-        <button class="action-btn delete-btn" onclick="deleteItem('faculty', ${facultyId}, '${deleteLabel}')" title="Delete">
+        <button class="action-btn delete-btn" onclick="deleteItem('faculty', ${facultyId})" title="Delete">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 6h18"></path>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1724,7 +1694,7 @@ async function viewFacultyAssignments(el) {
     }
 }
 
-async function editFaculty(el) {
+function editFaculty(el) {
     const id = el.dataset.facultyId;
     const name = el.dataset.facultyName || '';
     const scheduleId = el.dataset.scheduleId || '';
@@ -1733,18 +1703,6 @@ async function editFaculty(el) {
     const subjectName = el.dataset.subjectName || '';
     const sections = el.dataset.sections || '';
 
-    // Fetch all teacher entries to find existing subject assignments
-    let existingSubjectIds = [];
-    try {
-        const facRes = await apiFetch('/api/faculty');
-        const allFaculty = await facRes.json();
-        existingSubjectIds = allFaculty
-            .filter(t => t.name === name && t.subject_id)
-            .map(t => t.subject_id);
-    } catch (e) {
-        console.error('Failed to fetch existing subjects for edit', e);
-    }
-
     openModal('faculty', {
         id,
         scheduleId: scheduleId || null,
@@ -1752,8 +1710,7 @@ async function editFaculty(el) {
         status: currentStatus,
         subjectCode,
         subjectName,
-        sections,
-        existingSubjectIds
+        sections
     });
 }
 
@@ -1772,21 +1729,21 @@ async function loadSectionData(section) {
                 <td>${item.department}</td>
                 <td>${item.email}</td>
                 <td><span style="color: ${item.status === 'Active' ? '#4ade80' : '#f87171'}">${item.status}</span></td>
-                <td><button onclick="deleteItem('faculty', ${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
+                <td><button onclick="deleteItem('faculty', ${item.id})" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
             `;
         } else if (section === 'subjects') {
             tr.innerHTML = `
                 <td>${item.code}</td>
                 <td>${item.name}</td>
                 <td>${item.units}</td>
-                <td><button onclick="deleteItem('subjects', ${item.id}, '${item.code} - ${item.name.replace(/'/g, "\\'")}')" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
+                <td><button onclick="deleteItem('subjects', ${item.id})" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
             `;
         } else if (section === 'rooms') {
             tr.innerHTML = `
                 <td>${item.name}</td>
                 <td>${item.capacity}</td>
                 <td>${item.type}</td>
-                <td><button onclick="deleteItem('rooms', ${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
+                <td><button onclick="deleteItem('rooms', ${item.id})" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
             `;
         } else if (section === 'schedules') {
             tr.innerHTML = `
@@ -1795,7 +1752,7 @@ async function loadSectionData(section) {
                 <td>${item.faculty_name}</td>
                 <td>${item.subject_name}</td>
                 <td>${item.room_name}</td>
-                <td><button onclick="deleteItem('schedules', ${item.id}, '${item.subject_name.replace(/'/g, "\\'")}')" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
+                <td><button onclick="deleteItem('schedules', ${item.id})" style="color: #f87171; background: none; border: none; cursor: pointer;">Delete</button></td>
             `;
         }
         tbody.appendChild(tr);
@@ -1833,19 +1790,19 @@ async function loadCounts() {
 
 let pendingDelete = { section: null, id: null };
 
-function deleteItem(section, id, label = 'this item') {
+function deleteItem(section, id) {
     pendingDelete = { section, id };
     
-    const modal = document.getElementById('deleteModalOverlay');
-    const msg = document.getElementById('deleteModalMessage');
-    
-    if (msg) {
-        msg.innerHTML = `Are you sure you want to delete <strong style="color: #1e1b4b;">${label}</strong>?<br><br>This action cannot be undone and will permanently remove it from the system.`;
+    // Instantly remove the row visually if possible for faster perceived performance
+    const row = document.querySelector(`tr[data-id="${id}"]`) || document.querySelector(`tr[data-subject-id="${id}"]`);
+    if (row && section !== 'schedules') {
+        row.style.opacity = '0.5';
+        row.style.pointerEvents = 'none';
+        row.style.transition = 'opacity 0.2s';
     }
-    
-    if (modal) {
-        modal.style.display = 'flex';
-    }
+
+    // Immediately execute the delete action without showing confirmation modal
+    confirmDelete();
 }
 
 function closeDeleteModal() {
@@ -2287,7 +2244,7 @@ async function loadScheduleCombinedData() {
             tbody.innerHTML = '';
 
             if (!Array.isArray(rooms) || rooms.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="empty-state-cell">No ComLab Rooms found. Click "Add ComLab" to create one.</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No ComLab rooms found. Click "Add ComLab" to create one.</td></tr>';
                 return;
             }
 
@@ -2311,7 +2268,7 @@ async function loadScheduleCombinedData() {
                                         <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
-                                <button class="action-btn delete-btn" onclick="deleteItem('rooms', ${room.id}, '${escapedName}')" title="Delete">
+                                <button class="action-btn delete-btn" onclick="deleteItem('rooms', ${room.id})" title="Delete">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M3 6h18"></path>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2338,11 +2295,6 @@ async function loadScheduleCombinedData() {
             const subjects = await res.json();
 
             tbody.innerHTML = '';
-
-            if (!Array.isArray(subjects) || subjects.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="empty-state-cell">No Subject found. Click "Add Subject" to create one.</td></tr>`;
-                return;
-            }
             subjects.forEach(sub => {
                 if (filterVal !== 'all' && sub.code !== filterVal) return;
                 if (yearVal !== 'all') {
@@ -2362,7 +2314,7 @@ async function loadScheduleCombinedData() {
                                     <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button class="action-btn delete-btn" onclick="deleteItem('subjects', ${sub.id}, '${sub.code} - ${sub.name.replace(/'/g, "\\'")}')" title="Delete Subject">
+                            <button class="action-btn delete-btn" onclick="deleteItem('subjects', ${sub.id})" title="Delete Subject">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"></path>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2426,8 +2378,8 @@ function closeSubjectModal() {
 document.getElementById('subjectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const code = document.getElementById('sm_code').value.trim();
-    const name = toTitleCase(document.getElementById('sm_name').value.trim());
+    const code = document.getElementById('sm_code').value;
+    const name = document.getElementById('sm_name').value;
     const roomInput = document.getElementById('sm_room');
     const yearLevelInput = document.getElementById('sm_year_level');
 
@@ -2731,7 +2683,7 @@ function closeRoomModal() {
 
 async function saveNewRoom(event, editingId = null) {
     event.preventDefault();
-    const name = toTitleCase(document.getElementById('r_name').value.trim());
+    const name = document.getElementById('r_name').value.trim();
     const location = document.getElementById('r_location').value.trim();
 
     const errBox = document.getElementById('roomError');
@@ -2861,63 +2813,45 @@ function toggleCustomDropdown(event, id = 'roomFilterDropdown') {
 }
 
 function selectCustomOption(event, value, text, dropdownId = 'roomFilterDropdown', textId = 'selectedRoomText', selectId = 'roomFilter') {
-    let actualEvent = event;
-    let actualValue = value;
-    let actualText = text;
-    let actualDropdownId = dropdownId;
-    let actualTextId = textId;
-    let actualSelectId = selectId;
-
-    // Detect if the first argument is an event object
-    const isEvent = event && typeof event === 'object' && (event instanceof Event || (typeof event.stopPropagation === 'function'));
-
-    if (isEvent) {
+    if (event && typeof event === 'object' && typeof event.stopPropagation === 'function') {
         event.stopPropagation();
-    } else {
-        // Shift arguments if event was omitted
-        actualSelectId = actualTextId;
-        actualTextId = actualDropdownId;
-        actualDropdownId = actualText;
-        actualText = actualValue;
-        actualValue = event;
     }
+    const dropdown = document.getElementById(dropdownId);
+    const selectedText = document.getElementById(textId);
+    const hiddenSelect = document.getElementById(selectId);
 
-    const dropdown = document.getElementById(actualDropdownId);
-    const selectedText = document.getElementById(actualTextId);
-    const hiddenSelect = document.getElementById(actualSelectId);
-
-    if (selectedText) selectedText.textContent = actualText;
+    if (selectedText) selectedText.textContent = text;
     if (hiddenSelect) {
-        hiddenSelect.value = actualValue;
+        hiddenSelect.value = value;
         // Trigger the appropriate data reload based on which filter changed
-        if (actualSelectId === 'roomFilter' || actualSelectId === 'teacherSelectFilter') {
+        if (selectId === 'roomFilter' || selectId === 'teacherSelectFilter') {
             handleFilterChange();
-        } else if (actualSelectId === 'teacherStatusFilter' || actualSelectId === 'teacherNameFilter') {
+        } else if (selectId === 'teacherStatusFilter' || selectId === 'teacherNameFilter') {
             loadTeacherManagementTable();
-        } else if (actualSelectId === 'combinedManagementFilter') {
+        } else if (selectId === 'combinedManagementFilter') {
             // Campus filter (ComLabs view) or subjects filter — reload the combined table
             loadScheduleCombinedData();
-        } else if (actualSelectId === 'm_room_id' || actualSelectId === 'm_subject_id' || actualSelectId === 'm_faculty_id') {
-            const type = actualSelectId.split('_')[1]; // room, subject, or faculty
+        } else if (selectId === 'm_room_id' || selectId === 'm_subject_id' || selectId === 'm_faculty_id') {
+            const type = selectId.split('_')[1]; // room, subject, or faculty
             toggleTypedInput(type);
-        } else if (actualSelectId !== 'semesterSelect' && actualSelectId !== 'heroSemesterSelect') {
+        } else if (selectId !== 'semesterSelect' && selectId !== 'heroSemesterSelect') {
             renderSchedulesVisualGrid?.();
         }
     }
 
     // Update selected class in options
-    if (dropdown) {
-        const options = dropdown.querySelectorAll('.custom-option');
-        options.forEach(opt => {
-            if (opt.getAttribute('data-value') === String(actualValue)) {
-                opt.classList.add('selected');
-            } else {
-                opt.classList.remove('selected');
-            }
-        });
+    const options = dropdown.querySelectorAll('.custom-option');
+    options.forEach(opt => {
+        if (opt.getAttribute('data-value') === value) {
+            opt.classList.add('selected');
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
 
-        // Update has-selection highlight on the dropdown wrapper
-        dropdown.classList.toggle('has-selection', actualValue !== 'all' && actualValue !== '');
+    // Update has-selection highlight on the dropdown wrapper
+    if (dropdown) {
+        dropdown.classList.toggle('has-selection', value !== 'all');
         dropdown.classList.remove('open');
     }
 }
@@ -2992,12 +2926,10 @@ async function loadTeacherGrid() {
 
         facultyData.sort((a, b) => a.name.localeCompare(b.name));
 
-        let rowsAdded = 0;
         facultyData.forEach(teacher => {
             const teacherName = teacher.name;
             if (selectedTeacher !== 'all' && selectedTeacher !== teacherName) return;
 
-            rowsAdded++;
             const teacherSchedules = scheduleGrouped[teacherName] || [];
 
             if (teacherSchedules.length === 0) {
@@ -3033,63 +2965,52 @@ async function loadTeacherGrid() {
 
                 const subjectGroups = Object.values(groupedBySubject);
 
+                const tr = document.createElement('tr');
+                let subjectsHtml = '';
+                let sectionsHtml = '';
+
                 subjectGroups.forEach((group, idx) => {
-                    const tr = document.createElement('tr');
-                    tr.style.background = '#f1f5f9';
-
-                    let prefixCells = '';
-                    let actionCell = '';
-
                     const sectionsList = Array.from(group.sections).sort().filter(x => x && x.trim() !== '').join(', ') || 'N/A';
+                    const sCode = group.code || 'None';
+                    const sName = (group.name && group.name !== 'null') ? group.name : '';
+                    
+                    const borderBottom = idx < subjectGroups.length - 1 ? 'border-bottom: 2px solid white;' : '';
 
-                    if (idx === 0) {
-                        prefixCells = `
-                            <td class="teacher-name-cell" rowspan="${subjectGroups.length}">${teacherName}</td>
-                        `;
-                        actionCell = `
-                            <td class="action-cell" rowspan="${subjectGroups.length}" style="vertical-align: middle; background: #f1f5f9;">
-                                <div class="action-btn-group flex justify-center !gap-3">
-                                    <span class="icon-view-new" data-teacher-name="${teacherName.replace(/'/g, "\\'")}" data-subject-code="" onclick="viewFacultyAssignments(this)" title="View">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                    </span>
-                                </div>
-                            </td>
-                        `;
-                    }
-
-                    const fallbackName = group.subject.replace(/ \u2013 null$/, '').replace(/ \u2013 $/, '');
-                    const finalCode = group.code || fallbackName;
-                    const finalName = group.name && group.name !== 'null' ? group.name : '';
-
-                    const subjContent = `
-                        <div style="padding: 1.2rem 1rem;">
-                            <div style="font-weight: 800; color: #1e1b4b; font-size: 1.05rem; letter-spacing: 0.02em;">${finalCode}</div>
-                            <div style="font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 4px;">${finalName}</div>
+                    subjectsHtml += `
+                        <div style="padding: 1.25rem 1rem; ${borderBottom} display: flex; flex-direction: column; justify-content: center; min-height: 80px;">
+                            <div style="font-weight: 800; color: #1e1b4b; font-size: 0.95rem; line-height: 1.2;">${sCode}</div>
+                            ${sName ? `<div style="font-size: 0.85rem; font-style: italic; color: #6b7280; margin-top: 0.25rem;">${sName}</div>` : ''}
                         </div>
                     `;
 
-                    const secContent = `
-                        <div style="padding: 1.2rem 1rem; text-align: center; font-weight: 600; font-size: 0.95rem; color: #1e1b4b;">
+                    sectionsHtml += `
+                        <div style="padding: 1.25rem 1rem; ${borderBottom} display: flex; align-items: center; justify-content: center; min-height: 80px; font-weight: 700; color: #1e1b4b; font-size: 0.9rem;">
                             ${sectionsList}
                         </div>
                     `;
-
-                    const innerBorder = idx < subjectGroups.length - 1 ? 'border-bottom: 1px solid #e2e8f0;' : 'border-bottom: none;';
-
-                    tr.innerHTML = `
-                        ${prefixCells}
-                        <td class="subject-cell" style="padding: 0; vertical-align: middle; background: #f1f5f9; border-right: 1px solid #e2e8f0; ${innerBorder}">${subjContent}</td>
-                        <td class="section-cell" style="padding: 0; vertical-align: middle; background: #f1f5f9; border-right: 1px solid #e2e8f0; ${innerBorder}">${secContent}</td>
-                        ${actionCell}
-                    `;
-                    tbody.appendChild(tr);
                 });
+
+                tr.innerHTML = `
+                    <td class="teacher-name-cell" style="vertical-align: middle; text-align: center; font-weight: 800; color: #1e1b4b; background-color: #f1f5f9;">
+                        ${teacherName}
+                    </td>
+                    <td class="subject-cell" style="padding: 0; background-color: #f1f5f9; text-align: left;">
+                        ${subjectsHtml}
+                    </td>
+                    <td class="section-cell" style="padding: 0; background-color: #f8fafc; text-align: center;">
+                        ${sectionsHtml}
+                    </td>
+                    <td class="action-cell" style="vertical-align: middle; text-align: center; background-color: #f1f5f9;">
+                        <div class="action-btn-group">
+                            <span class="icon-view-new" data-teacher-name="${teacherName.replace(/'/g, "\\'")}" data-subject-code="" onclick="viewFacultyAssignments(this)" title="View">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </span>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
             }
         });
-
-        if (rowsAdded === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="empty-state-cell">Nothing to display.</td></tr>`;
-        }
     } catch (e) {
         console.error("Home Teacher View Error:", e);
         grid.innerHTML = '<div class="p-8 text-center bg-white rounded-xl shadow-md border border-slate-100 text-slate-400">Failed to load teacher schedules.</div>';
@@ -3345,7 +3266,7 @@ function renderModalGrid(schedules, container, isTeacherView) {
                                 <button onclick="editScheduleItem(${s.id}); closeLabModal();" style="border: none; background: #f8fafc; width: 34px; height: 34px; border-radius: 10px; color: #4338ca; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" title="Edit" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                                 </button>
-                                <button onclick="deleteItem('schedules', ${s.id}, '${s.subject_code} schedule on ${s.day}')" style="border: none; background: #fff1f2; width: 34px; height: 34px; border-radius: 10px; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" title="Delete" onmouseover="this.style.background='#ffe4e6'" onmouseout="this.style.background='#fff1f2'">
+                                <button onclick="deleteItem('schedules', ${s.id})" style="border: none; background: #fff1f2; width: 34px; height: 34px; border-radius: 10px; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" title="Delete" onmouseover="this.style.background='#ffe4e6'" onmouseout="this.style.background='#fff1f2'">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                                 </button>
                             </div>

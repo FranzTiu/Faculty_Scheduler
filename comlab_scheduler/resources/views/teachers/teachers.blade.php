@@ -49,13 +49,13 @@
                         </div>
                         <div class="custom-dropdown-options" id="teacherStatusOptions">
                             <div class="custom-option selected" data-value="all"
-                                onclick="selectCustomOption('all', 'All Status', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
+                                onclick="selectCustomOption(event, 'all', 'All Status', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
                                 All Status</div>
                             <div class="custom-option" data-value="Full-time"
-                                onclick="selectCustomOption('Full-time', 'Full-time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
+                                onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
                                 Full-time</div>
                             <div class="custom-option" data-value="Part-Time"
-                                onclick="selectCustomOption('Part-Time', 'Part-Time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
+                                onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
                                 Part-Time</div>
                         </div>
                         <select id="teacherStatusFilter" class="hidden">
@@ -80,7 +80,9 @@
                         </tr>
                     </thead>
                     <tbody id="facultyTableBody">
-                        <!-- Data will be loaded dynamically -->
+                        <tr>
+                            <td colspan="5" class="empty-state-cell">Loading teachers...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

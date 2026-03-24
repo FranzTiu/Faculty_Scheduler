@@ -1973,32 +1973,32 @@ th {
 
 .teacher-table td {
     padding: 1rem 14px;
-    border-bottom: 1px solid #f1f5f9;
-    border-right: 1px solid #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
     font-size: 0.95rem;
     color: #1e1b4b;
     vertical-align: middle;
-    background: #ffffff;
+    background: #f1f5f9;
     transition: background 0.2s ease;
+    text-align: center !important;
 }
 
 .teacher-table tbody tr:nth-child(even) td {
-    background: #fdfdfd;
+    background: #f1f5f9;
 }
 
 .teacher-table tbody tr:hover td {
-    background: #fef9c3 !important;
+    background: #e2e8f0 !important;
 }
 
 .teacher-table .teacher-name-cell {
-    background: #f8fafc;
+    background: #f1f5f9;
     color: #1e1b4b;
     text-align: center !important;
     vertical-align: middle !important;
-    font-weight: 800;
     border-right: 1px solid #cbd5e1 !important;
-    font-family: 'Playfair Display', serif;
-    font-size: 1.15rem;
+    font-size: 0.95rem;
+    font-weight: 400;
 }
 
 .teacher-table .subject-cell {
@@ -2007,13 +2007,8 @@ th {
 }
 
 .teacher-table .section-cell {
-    text-align: left !important;
-    padding-left: 1.5rem !important;
-}
-
-.teacher-table .section-cell {
-    text-align: left !important;
-    padding-left: 1.5rem !important;
+    text-align: center !important;
+    padding-left: 0 !important;
 }
 
 .teacher-table .view-btn-cell {
@@ -2165,16 +2160,12 @@ th {
 .teacher-manage-table th:nth-child(1),
 .teacher-manage-table .teacher-name-cell {
     width: 15%;
-    font-family: 'Playfair Display', serif;
-    font-weight: 800;
     color: #1e1b4b;
 }
 
 .teacher-manage-table th:nth-child(2),
 .teacher-manage-table .status-cell {
     width: 12%;
-    font-family: 'Playfair Display', serif;
-    font-weight: 800;
     color: #1e1b4b;
 }
 
@@ -2183,17 +2174,44 @@ th {
     width: 50%;
     text-align: center !important;
     padding-left: 0 !important;
-    font-weight: 700;
     color: #1e1b4b;
 }
 
 .teacher-manage-table th:nth-child(4),
 .teacher-manage-table .section-cell {
     width: 13%;
-    text-align: left !important;
-    padding-left: 1rem !important;
-    font-weight: 700;
+    text-align: center !important;
+    padding-left: 0 !important;
     color: #1e1b4b;
+}
+
+/* Ensure Headers stay bold */
+.teacher-manage-table th:nth-child(1),
+.teacher-manage-table th:nth-child(2) { font-weight: 800; }
+.teacher-manage-table th:nth-child(3),
+.teacher-manage-table th:nth-child(4),
+.teacher-manage-table th:nth-child(5) { font-weight: 700; }
+
+/* Unified first column style for all management tables */
+.teacher-manage-table td:nth-child(1),
+.teacher-manage-table td.teacher-name-cell,
+.teacher-manage-table td.status-cell { 
+    font-weight: 900 !important; 
+    font-size: 1.1rem !important;
+    color: #1e1b4b !important;
+    font-family: 'Inter', sans-serif !important;
+    text-align: center !important;
+}
+
+.empty-state-cell {
+    text-align: center !important;
+    color: #475569 !important;
+    padding: 6rem 2rem !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 1.1rem !important; /* Matched to table cell size */
+    font-weight: 600 !important;
+    background: white !important;
+    border: none !important;
 }
 
 .teacher-manage-table th:nth-child(5),
@@ -2206,6 +2224,7 @@ th {
 .teacher-manage-table td {
     padding: 0.5rem 0.8rem !important;
     vertical-align: middle !important;
+    text-align: center !important;
 }
 
 .teacher-manage-table thead th:last-child {
@@ -2220,31 +2239,28 @@ th {
     border-top-right-radius: 10px;
 }
 
-/* Alternating column colors: 1=gray, 2=lavender, 3=gray, 4=lavender, 5=lavender */
-/* Alternating column colors based on reference: 1=Gray, 2=Lavender, 3=Gray, 4=Lavender, 5=Lavender */
+/* Table Body Color */
 .teacher-manage-table tbody td:nth-child(1),
 .teacher-manage-table tbody td:nth-child(3) {
-    background: #e5e7eb !important;
-    /* Soft Gray */
+    background: #f1f5f9 !important;
 }
 
 .teacher-manage-table tbody td:nth-child(2),
 .teacher-manage-table tbody td:nth-child(4),
 .teacher-manage-table tbody td:nth-child(5) {
-    background: #ede9fe !important;
-    /* Soft Lavender */
+    background: #f1f5f9 !important;
 }
 
 .teacher-manage-table td {
-    border-bottom: 1px solid #f1f5f9 !important;
-    /* Light border between rows */
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    text-align: center !important;
 }
 
-/* Specific Widths and Alignments for 3-Column Combined Table (Matched to Image) */
+/* Consolidated styling for all 3-column and management tables */
 #scheduleCombinedTable th,
 #scheduleCombinedTable td {
     text-align: center !important;
-    padding: 1rem 0.5rem !important;
 }
 
 #scheduleCombinedTable th:nth-child(1) {
@@ -2270,21 +2286,19 @@ th {
     width: 20% !important;
 }
 
-/* Color structure for 3-column table: Gray-Lavender-Lavender */
+/* Color structure for 3-column table */
 #scheduleCombinedTable tbody td:nth-child(1) {
-    background: #e5e7eb !important;
-    /* Soft Gray */
+    background: #f1f5f9 !important;
 }
 
 #scheduleCombinedTable tbody td:nth-child(2),
 #scheduleCombinedTable tbody td:nth-child(3) {
-    background: #ede9fe !important;
-    /* Matching Light Blue/Lavender */
+    background: #f1f5f9 !important;
 }
 
-/* Ensure hover states work for the Action column in 3-column view */
-#scheduleCombinedTable tbody tr:hover td:nth-child(3) {
-    background: #ddd6fe !important;
+/* Ensure hover states work for the tables */
+#scheduleCombinedTable tbody tr:hover td {
+    background: #e2e8f0 !important;
 }
 
 .action-btn-group {
@@ -2295,21 +2309,14 @@ th {
     align-items: center;
 }
 
-.teacher-manage-table tbody tr:hover td:nth-child(1),
-.teacher-manage-table tbody tr:hover td:nth-child(3) {
-    background: #d1d5db !important;
+.teacher-manage-table tbody tr:hover td {
+    background: #e2e8f0 !important;
 }
 
-.teacher-manage-table tbody tr:hover td:nth-child(2),
-.teacher-manage-table tbody tr:hover td:nth-child(4),
-.teacher-manage-table tbody tr:hover td:nth-child(5) {
-    background: #ddd6fe !important;
-}
 
 .teacher-manage-table tbody td:first-child {
     font-size: 0.95rem;
-    font-weight: 700;
-    color: #000;
+    color: #1e1b4b;
 }
 
 .action-btn-group {
@@ -2319,47 +2326,56 @@ th {
     align-items: center;
 }
 
-/* View (eye) icon: solid yellow pill */
+/* View (eye) icon: Yellow Icon only */
 .icon-view-new {
-    color: #1e1b4b;
+    color: #fbbf24;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #fbbf24;
-    transition: all 0.2s;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.4);
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .icon-view-new:hover {
-    background: #f59e0b;
+    color: #f59e0b;
+    background: transparent;
     transform: scale(1.1);
 }
 
-.icon-edit-new {
+.action-btn {
+    border: none;
+    background: transparent;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-btn.edit-btn {
     color: #1e1b4b;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s;
 }
 
-.icon-delete-new {
+.action-btn.edit-btn:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+    transform: scale(1.1);
+}
+
+.action-btn.delete-btn {
     color: #ef4444;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s;
 }
 
-.icon-view-new:hover,
-.icon-edit-new:hover,
-.icon-delete-new:hover {
-    transform: scale(1.2);
-    filter: brightness(1.1);
+.action-btn.delete-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    transform: scale(1.1);
 }
 
 .btn-manage-add {

@@ -46,10 +46,9 @@
                 </div>
             </div>
             <div class="stat-card" onclick="animateCard(this)">
-                <div class="stat-icon">
+                <div class="stat-icon" style="color: #1e1b4b;">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M11 11.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm10 4.5l-4-3v9l4-3v-3zm-6-2.5V8c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-4.5zM11 13H5V8h6v5z" />
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                     </svg>
                 </div>
                 <div class="stat-info">

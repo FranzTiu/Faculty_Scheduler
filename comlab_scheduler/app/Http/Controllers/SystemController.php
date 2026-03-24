@@ -423,38 +423,108 @@ class SystemController extends Controller
     // Teachers (Faculty) logic
     public function getFaculty()
     {
-        return response()->json(Teacher::orderBy('name', 'asc')->get()->map(function ($t) {
+        return response()->json(Teacher::with(['subject', 'section'])->orderBy('name', 'asc')->get()->map(function ($t) {
             return [
                 'id' => $t->id,
                 'name' => $t->name,
-                'employment_status' => $t->employment_status
+                'employment_status' => $t->employment_status,
+                'subject_id' => $t->subject_id,
+                'subject_code' => $t->subject ? $t->subject->subject_code : null,
+                'subject_name' => $t->subject ? $t->subject->subject_name : null,
+                'section_id' => $t->section_id,
+                'section' => $t->section ? $t->section->section : null,
             ];
         }));
     }
 
     public function addFaculty(Request $request)
     {
+        $semester = $this->resolveSemester($request);
+
+        // Handle section: find or create if provided
+        $section_id = null;
+        if (!empty($request->section)) {
+            $sectionModel = \App\Models\Section::firstOrCreate(['section' => $request->section]);
+            $section_id = $sectionModel->id;
+        } elseif (!empty($request->section_id)) {
+            $section_id = intval($request->section_id);
+        }
+
+        // Handle subject_id: resolve from subject_code if needed
+        $subject_id = null;
+        if (!empty($request->subject_id)) {
+            $subject_id = intval($request->subject_id);
+        } elseif (!empty($request->subject_code)) {
+            $subject = Subject::where('semester_id', $semester->id)
+                ->where('subject_code', $request->subject_code)->first();
+            if ($subject) {
+                $subject_id = $subject->id;
+            }
+        }
+
+        // Prevent duplicate: same teacher name + subject_id
+        if ($subject_id) {
+            $existing = Teacher::where('name', $request->name)
+                ->where('subject_id', $subject_id)
+                ->first();
+            if ($existing) {
+                return response()->json([
+                    "success" => true,
+                    "id" => $existing->id,
+                    "duplicate" => true,
+                    "message" => "This subject is already assigned to this teacher.",
+                ]);
+            }
+        }
+
         $teacher = Teacher::create([
             'name' => $request->name,
-            'employment_status' => $request->employment_status ?? 'Full-time'
+            'employment_status' => $request->employment_status ?? 'Full-time',
+            'subject_id' => $subject_id,
+            'section_id' => $section_id,
         ]);
-        return response()->json(["success" => true, "id" => $teacher->id]);
+
+        // Load relations for response
+        $teacher->load(['subject', 'section']);
+
+        return response()->json([
+            "success" => true,
+            "id" => $teacher->id,
+            "subject_code" => $teacher->subject ? $teacher->subject->subject_code : null,
+            "subject_name" => $teacher->subject ? $teacher->subject->subject_name : null,
+            "section" => $teacher->section ? $teacher->section->section : null,
+        ]);
     }
 
     public function updateFaculty(Request $request, $id)
     {
         $teacher = Teacher::find($id);
-        if ($teacher) {
-            $updates = [];
-            if ($request->has('name'))
-                $updates['name'] = $request->name;
-            if ($request->has('employment_status') && $request->employment_status !== '') {
-                $updates['employment_status'] = $request->employment_status;
-            }
-            $teacher->update($updates);
-            return response()->json(["success" => true]);
+        if (!$teacher) {
+            return response()->json(["success" => false, "error" => "Teacher not found."]);
         }
-        return response()->json(["success" => false]);
+
+        $updates = [];
+        if ($request->has('name'))
+            $updates['name'] = $request->name;
+        if ($request->has('employment_status') && $request->employment_status !== '') {
+            $updates['employment_status'] = $request->employment_status;
+        }
+
+        // Handle subject_id
+        if ($request->has('subject_id')) {
+            $updates['subject_id'] = $request->subject_id ? intval($request->subject_id) : null;
+        }
+
+        // Handle section_id
+        if ($request->has('section_id')) {
+            $updates['section_id'] = $request->section_id ? intval($request->section_id) : null;
+        } elseif ($request->has('section') && !empty($request->section)) {
+            $sectionModel = \App\Models\Section::firstOrCreate(['section' => $request->section]);
+            $updates['section_id'] = $sectionModel->id;
+        }
+
+        $teacher->update($updates);
+        return response()->json(["success" => true]);
     }
 
     public function deleteFaculty($id)
@@ -492,13 +562,30 @@ class SystemController extends Controller
     public function addSchedule(Request $request)
     {
         $semester = $this->resolveSemester($request);
-
         $faculty_id = $request->faculty_id ? intval($request->faculty_id) : 0;
         $subject_id = $request->subject_id ? intval($request->subject_id) : 0;
+        if ($subject_id === 0 && !empty($request->subject_code)) {
+            $subject = Subject::firstOrCreate(
+                ['semester_id' => $semester->id, 'subject_code' => $request->subject_code],
+                ['subject_name' => $request->subject_name ?: $request->subject_code]
+            );
+            if (!empty($request->subject_name)) {
+                $subject->update(['subject_name' => $request->subject_name]);
+            }
+            $subject_id = $subject->id;
+        }
+
         $room_id = $request->room_id ? intval($request->room_id) : 0;
+        if ($room_id === 0 && !empty($request->room_name)) {
+            $room = Room::firstOrCreate(
+                ['semester_id' => $semester->id, 'room_name' => $request->room_name],
+                ['campus' => 'TBA']
+            );
+            $room_id = $room->id;
+        }
 
         if ($room_id === 0 || $faculty_id === 0 || $subject_id === 0) {
-            return response()->json(["success" => false, "error" => "Please select a valid Faculty, Subject and Room. If they aren't in the list, please create them first using their respective management pages."]);
+            return response()->json(["success" => false, "error" => "Please select a valid Faculty, Subject and Room."]);
         }
 
         $subject = Subject::where('semester_id', $semester->id)->find($subject_id);
