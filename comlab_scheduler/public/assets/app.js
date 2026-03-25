@@ -84,6 +84,7 @@ document.addEventListener('focusout', function (e) {
 // Semester state (always selected)
 let selectedSemesterId = null;
 let selectedSemesterMeta = null;
+let _semestersInitialized = false;
 
 function getStoredSemesterId() {
     const raw = window.localStorage.getItem('selectedSemesterId');
@@ -206,6 +207,10 @@ async function initSemesters() {
     } else if (list.length > 0) {
         storeSemesterId(list[0].id);
         selectedSemesterMeta = list[0];
+    } else {
+        selectedSemesterId = null;
+        selectedSemesterMeta = null;
+        window.localStorage.removeItem('selectedSemesterId');
     }
 
     pairs.forEach(p => {
@@ -218,7 +223,7 @@ async function initSemesters() {
         oEl.innerHTML = '';
 
         if (list.length === 0) {
-            tEl.textContent = 'No Available Semesters';
+            tEl.textContent = 'No Available Semester';
             const wrapEl = document.getElementById(p.wrap);
             if (wrapEl) wrapEl.classList.remove('has-selection');
         } else {
@@ -300,7 +305,15 @@ async function initSemesters() {
         }
     });
 
+    _semestersInitialized = true;
     applyCurriculumRestrictions();
+    
+    // Refresh page data now that semesters are loaded
+    loadCounts();
+    loadScheduleCombinedData();
+    loadLabGrid?.();
+    loadTeacherGrid?.();
+    loadTeacherManagementTable?.();
 }
 
 async function handleSemesterChange(sourceId = 'semesterSelect') {
@@ -357,14 +370,30 @@ async function handleSemesterChange(sourceId = 'semesterSelect') {
 }
 
 function applyCurriculumRestrictions() {
-    // Default curriculum mode is no longer read-only.
-    // Subjects and rooms can always be added, edited, and deleted.
+    const hasSemester = !!selectedSemesterId;
     const combinedAddBtn = document.getElementById('combinedAddBtn');
+    const addTeacherBtn = document.getElementById('addTeacherBtn');
+    const addScheduleBtn = document.getElementById('addScheduleBtn');
+
     if (combinedAddBtn) {
-        combinedAddBtn.disabled = false;
-        combinedAddBtn.style.opacity = '';
-        combinedAddBtn.style.cursor = '';
-        combinedAddBtn.title = '';
+        combinedAddBtn.disabled = !hasSemester;
+        combinedAddBtn.style.opacity = hasSemester ? '' : '0.5';
+        combinedAddBtn.style.cursor = hasSemester ? '' : 'not-allowed';
+        combinedAddBtn.title = hasSemester ? '' : 'No semesters available. Please "Add Semester" first.';
+    }
+
+    if (addTeacherBtn) {
+        addTeacherBtn.disabled = !hasSemester;
+        addTeacherBtn.style.opacity = hasSemester ? '' : '0.5';
+        addTeacherBtn.style.cursor = hasSemester ? '' : 'not-allowed';
+        addTeacherBtn.title = hasSemester ? '' : 'No semesters available. Please "Add Semester" first.';
+    }
+
+    if (addScheduleBtn) {
+        addScheduleBtn.disabled = !hasSemester;
+        addScheduleBtn.style.opacity = hasSemester ? '' : '0.5';
+        addScheduleBtn.style.cursor = hasSemester ? '' : 'not-allowed';
+        addScheduleBtn.title = hasSemester ? '' : 'No semesters available. Please "Add Semester" first.';
     }
 }
 
@@ -829,7 +858,7 @@ async function openModal(section, options = {}) {
 
         let subjectsListHtml = '';
         if (!isRowEdit) {
-            subjectsListHtml = `<div id="m_subjectsContainer" style="padding: 1rem; text-align: center; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">Loading subjects...</div>`;
+            subjectsListHtml = `<div id="m_subjectsContainer" style="color: #64748b;">Loading subjects...</div>`;
         }
 
         if (isRowEdit) {
@@ -926,18 +955,18 @@ async function openModal(section, options = {}) {
                             </div>
                         </div>
                         <div class="custom-dropdown-options">
-                            <div class="custom-option" data-value="Full-time" onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'm_statusDropdown', 'm_statusText', 'm_status')">Full-time</div>
-                            <div class="custom-option" data-value="Part-Time" onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'm_statusDropdown', 'm_statusText', 'm_status')">Part-Time</div>
-                        </div>
+                        <div class="custom-option" data-value="Full-time" onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'm_statusDropdown', 'm_statusText', 'm_status')">Full-time</div>
+                        <div class="custom-option" data-value="Part-Time" onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'm_statusDropdown', 'm_statusText', 'm_status')">Part-Time</div>
                     </div>
-                    <input type="hidden" id="m_status" value="Full-time">
                 </div>
-                <div class="form-group">
-                    <label>Select Subject(s) (Optional)</label>
-                    ${subjectsListHtml}
-                </div>
-            `;
-        }
+                <input type="hidden" id="m_status" value="Full-time">
+            </div>
+            <div class="form-group">
+                <label>Select Subject(s)</label>
+                <div id="m_subjectsContainer" style="color: #64748b;">Loading subjects...</div>
+            </div>
+        `;
+    }
 
         // Fetch and inject subjects asynchronously, pre-checking existing ones for edit mode
         if (!isRowEdit) {
@@ -948,20 +977,30 @@ async function openModal(section, options = {}) {
                     const container = document.getElementById('m_subjectsContainer');
                     if (container) {
                         container.innerHTML = `
-                            ${subjectsList.map(s => {
-                                const isChecked = existingSubjectIds.includes(s.id) ? 'checked' : '';
-                                return `
-                                <label style="display: flex; align-items: center; cursor: pointer; padding: 0.4rem; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'">
-                                    <input type="checkbox" class="subject-checkbox" value="${s.code}" data-id="${s.id}" data-name="${s.name.replace(/"/g, '&quot;')}" ${isChecked} style="margin-right: 0.8rem; width: 16px; height: 16px; flex: none; cursor: pointer;">
-                                    <span style="font-weight: 600; font-size: 0.85rem; color: #1e1b4b;">${s.code} <span style="font-weight: 400; color: #64748b;">- ${s.name}</span></span>
-                                </label>
-                            `}).join('')}
-                            ${subjectsList.length === 0 ? '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.5rem;">No subjects available</div>' : ''}
+                            <div class="custom-dropdown modal-style-dropdown multi-select" id="m_teacherSubjectsDropdown" onclick="toggleCustomDropdown(event, 'm_teacherSubjectsDropdown')">
+                                <div class="custom-dropdown-selected">
+                                    <span id="m_teacherSubjectsText">${existingSubjectIds.length > 0 ? existingSubjectIds.length + ' Subject(s) Selected' : 'Select Subject(s)'}</span>
+                                    <div class="dropdown-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M6 9l6 6 6-6"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="custom-dropdown-options" onclick="event.stopPropagation()">
+                                    <div class="checklist-container custom-scrollbar">
+                                        ${subjectsList.map(s => {
+                                            const isChecked = existingSubjectIds.includes(s.id) ? 'checked' : '';
+                                            return `
+                                            <label class="checklist-item">
+                                                <input type="checkbox" class="subject-checkbox" value="${s.code}" data-id="${s.id}" data-name="${s.name.replace(/"/g, '&quot;')}" ${isChecked} onchange="updateMultiSelectText('m_teacherSubjectsDropdown', 'm_teacherSubjectsText', 'subject-checkbox', 'Subject')">
+                                                <span>${s.code} <span class="sub-text">- ${s.name}</span></span>
+                                            </label>
+                                        `}).join('')}
+                                        ${subjectsList.length === 0 ? '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.5rem;">No subjects available</div>' : ''}
+                                    </div>
+                                </div>
+                            </div>
                         `;
-                        container.style.padding = '0.5rem';
-                        container.style.maxHeight = '180px';
-                        container.style.overflowY = 'auto';
-                        container.className = 'custom-scrollbar';
                     }
                 })
                 .catch(e => {
@@ -1037,44 +1076,44 @@ function renderScheduleFormStructure() {
                 </div>
             </div>
             <div class="form-group">
-                <label>Day</label>
-                <div class="custom-dropdown modal-style-dropdown" id="m_dayDropdown" onclick="toggleCustomDropdown(event, 'm_dayDropdown')">
+                <label>Day(s)</label>
+                <div class="custom-dropdown modal-style-dropdown multi-select" id="m_dayDropdown" onclick="toggleCustomDropdown(event, 'm_dayDropdown')">
                     <div class="custom-dropdown-selected">
-                        <span id="m_dayText">Monday</span>
+                        <span id="m_dayText">Select Day(s)</span>
                         <div class="dropdown-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M6 9l6 6 6-6"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="custom-dropdown-options">
-                        ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => 
-                            `<div class="custom-option" data-value="${day}" onclick="selectCustomOption(event, '${day}', '${day}', 'm_dayDropdown', 'm_dayText', 'm_day')">${day}</div>`
-                        ).join('')}
+                    <div class="custom-dropdown-options" onclick="event.stopPropagation()">
+                        <div class="checklist-container custom-scrollbar">
+                            ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => 
+                                `<label class="checklist-item">
+                                    <input type="checkbox" class="day-checkbox" value="${day}" onchange="updateMultiSelectText('m_dayDropdown', 'm_dayText', 'day-checkbox', 'Day')">
+                                    <span>${day}</span>
+                                </label>`
+                            ).join('')}
+                        </div>
                     </div>
                 </div>
-                <input type="hidden" id="m_day" value="Monday">
             </div>
         </div>
 
         <div class="form-group" id="subjectGroup">
-            <label>Subject</label>
-            <div class="custom-dropdown modal-style-dropdown" id="m_subjectDropdown" onclick="toggleCustomDropdown(event, 'm_subjectDropdown')">
+            <label>Subject(s)</label>
+            <div class="custom-dropdown modal-style-dropdown multi-select" id="m_subjectDropdown" onclick="toggleCustomDropdown(event, 'm_subjectDropdown')">
                 <div class="custom-dropdown-selected">
-                    <span id="m_subjectText">Loading...</span>
+                    <span id="m_subjectText">Select Subject(s)</span>
                     <div class="dropdown-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M6 9l6 6 6-6"></path>
                         </svg>
                     </div>
                 </div>
-                <div class="custom-dropdown-options" id="m_subjectOptions"></div>
-            </div>
-            <input type="hidden" id="m_subject_id" value="">
-            
-            <div id="subjectTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
-                <input type="text" id="m_subject_code" placeholder="Code (e.g. IT-101)" style="margin-bottom: 5px; font-size: 0.85rem;">
-                <input type="text" id="m_subject_name" placeholder="Subject Name" style="font-size: 0.85rem;">
+                <div class="custom-dropdown-options" id="m_subjectChecklist" onclick="event.stopPropagation()">
+                    <div style="text-align: center; color: #64748b; padding: 10px;">Loading subjects...</div>
+                </div>
             </div>
         </div>
 
@@ -1148,7 +1187,6 @@ function renderScheduleFormStructure() {
     syncTime('start');
     syncTime('end');
 }
-
 function populateScheduleDropdowns(rooms, subjects, faculty) {
     // Sort rooms
     rooms.sort((a, b) => {
@@ -1161,24 +1199,38 @@ function populateScheduleDropdowns(rooms, subjects, faculty) {
         return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
     });
 
+    const facultyStatusInput = document.getElementById('m_status');
+    if (facultyStatusInput) {
+        // Employment Status dropdown should NOT have Add New
+        // (It's already hardcoded as Full-time/Part-time)
+    }
+
     const roomOptions = document.getElementById('m_roomOptions');
     const roomText = document.getElementById('m_roomText');
     if (roomText) roomText.textContent = 'Select Room';
     if (roomOptions) {
         let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Room\', \'m_roomDropdown\', \'m_roomText\', \'m_room_id\')">Select Room</div>';
         html += rooms.map(r => `<div class="custom-option" data-value="${r.id}" onclick="selectCustomOption(event, '${r.id}', '${r.name}', 'm_roomDropdown', 'm_roomText', 'm_room_id')">${r.name}</div>`).join('');
-        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add Room', 'm_roomDropdown', 'm_roomText', 'm_room_id')">+ Add Room</div>`;
         roomOptions.innerHTML = html;
     }
 
-    const subjectOptions = document.getElementById('m_subjectOptions');
-    const subjectText = document.getElementById('m_subjectText');
-    if (subjectText) subjectText.textContent = 'Select Subject';
-    if (subjectOptions) {
-        let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Subject\', \'m_subjectDropdown\', \'m_subjectText\', \'m_subject_id\')">Select Subject</div>';
-        html += subjects.map(s => `<div class="custom-option" data-value="${s.id}" onclick="selectCustomOption(event, '${s.id}', '${s.code} - ${s.name}', 'm_subjectDropdown', 'm_subjectText', 'm_subject_id')">${s.code} - ${s.name}</div>`).join('');
-        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add New Subject', 'm_subjectDropdown', 'm_subjectText', 'm_subject_id')">+ Add New Subject</div>`;
-        subjectOptions.innerHTML = html;
+    // Populate Subject Checklist
+    const subjectChecklist = document.getElementById('m_subjectChecklist');
+    if (subjectChecklist) {
+        if (subjects.length === 0) {
+            subjectChecklist.innerHTML = '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.5rem;">No subjects available</div>';
+        } else {
+            subjectChecklist.innerHTML = `
+                <div class="checklist-container custom-scrollbar">
+                    ${subjects.map(s => `
+                        <label class="checklist-item">
+                            <input type="checkbox" class="modal-subject-checkbox" value="${s.id}" onchange="updateMultiSelectText('m_subjectDropdown', 'm_subjectText', 'modal-subject-checkbox', 'Subject')">
+                            <span>${s.code} <span class="sub-text">- ${s.name}</span></span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+        }
     }
 
     const facultyOptions = document.getElementById('m_facultyOptions');
@@ -1187,7 +1239,6 @@ function populateScheduleDropdowns(rooms, subjects, faculty) {
     if (facultyOptions) {
         let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Teacher\', \'m_facultyDropdown\', \'m_facultyText\', \'m_faculty_id\')">Select Teacher</div>';
         html += faculty.map(f => `<div class="custom-option" data-value="${f.id}" onclick="selectCustomOption(event, '${f.id}', '${f.name}', 'm_facultyDropdown', 'm_facultyText', 'm_faculty_id')">${f.name}</div>`).join('');
-        html += `<div class="custom-option" data-value="other" style="color: #4f46e5; font-weight: 800;" onclick="selectCustomOption(event, 'other', '+ Add New Teacher', 'm_facultyDropdown', 'm_facultyText', 'm_faculty_id')">+ Add New Teacher</div>`;
         facultyOptions.innerHTML = html;
     }
 }
@@ -1484,26 +1535,27 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
     if (currentSection === 'schedules') {
         data.room_id = document.getElementById('m_room_id').value;
         data.room_name = toTitleCase(document.getElementById('m_room_name')?.value?.trim() || '');
-        data.day = document.getElementById('m_day').value;
-        data.subject_id = document.getElementById('m_subject_id').value;
-        data.subject_code = document.getElementById('m_subject_code')?.value || '';
-        data.subject_name = toTitleCase(document.getElementById('m_subject_name')?.value?.trim() || '');
+        
+        // Collect multiple selected days
+        const dayCheckboxes = document.querySelectorAll('.day-checkbox:checked');
+        data.day = Array.from(dayCheckboxes).map(cb => cb.value);
+        
+        // Collect multiple selected subjects
+        const subjectCheckboxes = document.querySelectorAll('.modal-subject-checkbox:checked');
+        data.subject_id = Array.from(subjectCheckboxes).map(cb => parseInt(cb.value));
+        
         data.faculty_id = document.getElementById('m_faculty_id').value;
         data.faculty_name = toTitleCase(document.getElementById('m_faculty_name')?.value?.trim() || '');
         data.section = document.getElementById('m_section').value;
 
-        // Read time pickers directly if the user hasn't clicked OK
+        // Read time pickers directly
         ['start', 'end'].forEach(type => {
-            let val = document.getElementById('m_' + type).value;
-            if (!val) {
-                let hr = parseInt(document.getElementById('m_' + type + '_hr').value);
-                const min = parseInt(document.getElementById('m_' + type + '_min').value);
-                const ampm = document.getElementById('m_' + type + '_ampm').value;
-                if (ampm === 'AM' && hr === 12) hr = 0;
-                else if (ampm === 'PM' && hr !== 12) hr += 12;
-                val = String(hr).padStart(2, '0') + ':' + String(min).padStart(2, '0');
-            }
-            data[type + '_time'] = val;
+            let hr = parseInt(document.getElementById('m_' + type + '_hr').value);
+            const min = parseInt(document.getElementById('m_' + type + '_min').value);
+            const ampm = document.getElementById('m_' + type + '_ampm').value;
+            if (ampm === 'AM' && hr === 12) hr = 0;
+            else if (ampm === 'PM' && hr !== 12) hr += 12;
+            data[type + '_time'] = String(hr).padStart(2, '0') + ':' + String(min).padStart(2, '0');
         });
     }
 
@@ -1577,6 +1629,16 @@ function showSection(sectionId) {
 async function loadTeacherManagementTable() {
     const tbody = document.getElementById('facultyTableBody');
     if (!tbody) return;
+
+    if (!selectedSemesterId) {
+        if (_semestersInitialized) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>';
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">Loading teachers...</td></tr>';
+        }
+        return;
+    }
+
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">Loading teachers...</td></tr>';
 
     try {
@@ -1615,7 +1677,10 @@ async function loadTeacherManagementTable() {
         tbody.innerHTML = '';
 
         if (!Array.isArray(facultyData) || facultyData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="empty-state-cell">No Teacher found. Click "Add Teacher" to create one.</td></tr>`;
+            const hasSemester = !!selectedSemesterId;
+            tbody.innerHTML = hasSemester
+                ? '<tr><td colspan="5" class="empty-state-cell">No teachers found. Click "Add Teacher" to create one.</td></tr>'
+                : '<tr><td colspan="5" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>';
             return;
         }
 
@@ -1713,6 +1778,143 @@ async function loadTeacherManagementTable() {
         console.error("Failed to load teacher table", e);
         tbody.innerHTML = '<tr><td colspan="5" style="color: #ef4444;">Error loading data</td></tr>';
     }
+}
+
+async function renderSchedulesVisualGrid() {
+    const grid = document.getElementById('comlabGrid');
+    if (!grid) return;
+
+    if (!selectedSemesterId) {
+        if (_semestersInitialized) {
+            grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+        }
+        return;
+    }
+
+    const dayFilterVal = document.getElementById('dayFilter')?.value || 'all';
+    const timeFilterVal = document.getElementById('timeFilter')?.value || 'all';
+
+    try {
+        const schedRes = await apiFetch('/api/lab_schedule');
+        const groupedSchedules = await schedRes.json();
+
+        // 1. Flatten all schedules
+        let allSchedules = [];
+        Object.values(groupedSchedules).forEach(dayList => {
+            if (Array.isArray(dayList)) {
+                allSchedules = allSchedules.concat(dayList);
+            }
+        });
+
+        // 2. Extract unique times for the dynamic dropdown
+        const timeOptionsDiv = document.getElementById('timeDropdownOptions');
+        const timeSelect = document.getElementById('timeFilter');
+        if (timeOptionsDiv && timeSelect) {
+            const timeSlots = [...new Set(allSchedules.map(s => {
+                if (!s.start_time || !s.end_time) return null;
+                const start = s.start_time.substring(0, 5);
+                const end = s.end_time.substring(0, 5);
+                return `${start} - ${end}`;
+            }).filter(Boolean))];
+            timeSlots.sort();
+
+            let timeHtml = `<div class="custom-option ${timeFilterVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption(event, 'all', 'All Time', 'timeFilterDropdown', 'selectedTimeText', 'timeFilter')">All Time</div>`;
+            
+            timeSlots.forEach(slot => {
+                const isSelected = timeFilterVal === slot ? 'selected' : '';
+                timeHtml += `<div class="custom-option ${isSelected}" data-value="${slot}" onclick="selectCustomOption(event, '${slot}', '${slot}', 'timeFilterDropdown', 'selectedTimeText', 'timeFilter')">${slot}</div>`;
+            });
+
+            timeOptionsDiv.innerHTML = timeHtml;
+            
+            // Sync with hidden select
+            let selectHtml = '<option value="all">All Time</option>';
+            timeSlots.forEach(slot => {
+                selectHtml += `<option value="${slot}" ${timeFilterVal === slot ? 'selected' : ''}>${slot}</option>`;
+            });
+            timeSelect.innerHTML = selectHtml;
+            timeSelect.value = timeFilterVal;
+        }
+
+        // 3. Filter
+        let filtered = allSchedules;
+        if (dayFilterVal !== 'all') {
+            filtered = filtered.filter(s => s.day === dayFilterVal);
+        }
+        if (timeFilterVal !== 'all') {
+            filtered = filtered.filter(s => `${s.start_time.substring(0, 5)} - ${s.end_time.substring(0, 5)}` === timeFilterVal);
+        }
+
+        // 4. Sort Chronologically (Day order, then Time)
+        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        filtered.sort((a, b) => {
+            const dayA = dayOrder.indexOf(a.day);
+            const dayB = dayOrder.indexOf(b.day);
+            
+            if (dayA !== dayB) return dayA - dayB;
+            
+            const timeDiff = (a.start_time || '').localeCompare(b.start_time || '');
+            if (timeDiff !== 0) return timeDiff;
+            return (a.end_time || '').localeCompare(b.end_time || '');
+        });
+
+        // 5. Render
+        grid.innerHTML = '';
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No schedules match the selected filters.</div>';
+            return;
+        }
+
+        filtered.forEach(cls => {
+            const card = document.createElement('div');
+            card.className = 'lab-card shadow-sm hover:shadow-md transition-all duration-200';
+            
+            const formatT = (t) => {
+                const [h, m] = t.split(':');
+                const hr = parseInt(h);
+                return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+            };
+
+            const dayTag = dayFilterVal === 'all' ? `<span style="font-size: 0.7rem; font-weight: 800; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; margin-bottom: 0.5rem; display: inline-block;">${cls.day.toUpperCase()}</span>` : '';
+
+            card.innerHTML = `
+                <div style="padding: 1.2rem; height: 100%; display: flex; flex-direction: column; background: white; border-radius: 12px;">
+                    ${dayTag}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                        <span style="font-size: 0.9rem; font-weight: 800; color: #1e1b4b;">${formatT(cls.start_time)} - ${formatT(cls.end_time)}</span>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #fbbf24; background: #1e1b4b; padding: 2px 8px; border-radius: 6px;">${cls.room_name?.replace('COMPLAB', 'COMLAB')}</span>
+                    </div>
+                    <strong style="color: #1e293b; font-size: 1.15rem; line-height: 1.3; margin-bottom: 1rem;">${cls.subject_code} ${cls.subject_name || ''}</strong>
+                    
+                    <div style="margin-top: auto; padding-top: 1rem; border-top: 1px dashed #cbd5e1;">
+                        <div style="font-size: 0.85rem; color: #475569; display: flex; justify-content: space-between; align-items: center;">
+                             <span style="font-weight: 700; color: #1e1b4b;">Section: ${cls.section || 'N/A'}</span>
+                        </div>
+                        <div style="margin-top: 6px; font-size: 0.95rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 0.8rem; opacity: 0.7;">👤</span> ${cls.faculty_name}
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+    } catch (e) {
+        console.error("renderSchedulesVisualGrid error:", e);
+        grid.innerHTML = '<div class="col-span-full p-8 text-center text-red-500">Failed to load schedule data.</div>';
+    }
+}
+
+function handleSchedulePageFilterChange() {
+    renderSchedulesVisualGrid();
+}
+
+async function loadSchedulePageData() {
+    renderSchedulesVisualGrid();
+}
+
+function handleFilterChange() {
+    loadLabGrid();
 }
 
 function getActionIcons(facultyId, teacherName, subjectCode, scheduleId, employmentStatus, subjectLabel, sectionsText) {
@@ -2338,6 +2540,13 @@ async function loadScheduleCombinedData() {
     const header = document.getElementById('scheduleHeaderRow');
     if (!tbody || !header) return;
 
+    if (!selectedSemesterId) {
+        if (_semestersInitialized) {
+            tbody.innerHTML = `<tr><td colspan="3" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>`;
+        }
+        return;
+    }
+
     const filterVal = document.getElementById('combinedManagementFilter')?.value || 'all';
     const yearVal = document.getElementById('yearLevelFilter')?.value || 'all';
     if (currentCombinedView === 'comlabs') {
@@ -2356,7 +2565,10 @@ async function loadScheduleCombinedData() {
             tbody.innerHTML = '';
 
             if (!Array.isArray(rooms) || rooms.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="empty-state-cell">No ComLab Rooms found. Click "Add ComLab" to create one.</td></tr>`;
+                const hasSemester = !!selectedSemesterId;
+                tbody.innerHTML = hasSemester
+                    ? '<tr><td colspan="3" class="empty-state-cell">No ComLab rooms found. Click "Add ComLab" to create one.</td></tr>'
+                    : '<tr><td colspan="3" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>';
                 return;
             }
 
@@ -2409,7 +2621,10 @@ async function loadScheduleCombinedData() {
             tbody.innerHTML = '';
 
             if (!Array.isArray(subjects) || subjects.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="empty-state-cell">No Subject found. Click "Add Subject" to create one.</td></tr>`;
+                const hasSemester = !!selectedSemesterId;
+                tbody.innerHTML = hasSemester
+                    ? '<tr><td colspan="3" class="empty-state-cell">No subjects found. Click "Add Subject" to create one.</td></tr>'
+                    : '<tr><td colspan="3" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>';
                 return;
             }
             subjects.forEach(sub => {
@@ -2592,6 +2807,13 @@ async function loadLabGrid() {
     const grid = document.getElementById('comlabGrid');
     if (!grid) return;
 
+    if (!selectedSemesterId) {
+        if (_semestersInitialized) {
+            grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+        }
+        return;
+    }
+
     const selectedRoom = document.getElementById('roomFilter')?.value || 'all';
     const selectedDay = 'all';
     const selectedTime = 'all';
@@ -2601,10 +2823,31 @@ async function loadLabGrid() {
             apiFetch('/api/lab_schedule'),
             apiFetch('/api/rooms')
         ]);
+        if (!schedRes.ok || !roomsRes.ok) {
+            const hasSemester = !!selectedSemesterId;
+            if (!hasSemester) {
+                grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+            } else {
+                grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center text-red-500">Failed to load grid data.</div>';
+            }
+            return;
+        }
+
         const groupedSchedules = await schedRes.json();
         const roomsDb = await roomsRes.json();
 
         grid.innerHTML = '';
+
+        const hasSemester = !!selectedSemesterId;
+        if (!hasSemester) {
+            grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+            return;
+        }
+
+        if (roomsDb.length === 0 && Object.keys(groupedSchedules).length === 0) {
+            grid.innerHTML = '<div class="col-span-full p-8 text-slate-400 text-center">No ComLab rooms found. Click "Add ComLab" to create one.</div>';
+            return;
+        }
 
         // Build room list from schedule data so all rooms with schedules get a box (including AI32, MT12, etc.)
         const roomOrder = [
@@ -2949,6 +3192,26 @@ function toggleCustomDropdown(event, id = 'roomFilterDropdown') {
     dropdown.classList.toggle('open');
 }
 
+function updateMultiSelectText(dropdownId, textId, checkboxClass, itemLabel) {
+    const dropdown = document.getElementById(dropdownId);
+    const textEl = document.getElementById(textId);
+    if (!dropdown || !textEl) return;
+
+    const checked = dropdown.querySelectorAll(`.${checkboxClass}:checked`);
+    if (checked.length === 0) {
+        textEl.textContent = `Select ${itemLabel}(s)`;
+        dropdown.classList.remove('has-selection');
+    } else if (checked.length === 1) {
+        // Find the label text for single selection
+        const label = checked[0].parentElement.querySelector('span').textContent.split('-')[0].trim();
+        textEl.textContent = label;
+        dropdown.classList.add('has-selection');
+    } else {
+        textEl.textContent = `${checked.length} ${itemLabel}s Selected`;
+        dropdown.classList.add('has-selection');
+    }
+}
+
 function selectCustomOption(event, value, text, dropdownId = 'roomFilterDropdown', textId = 'selectedRoomText', selectId = 'roomFilter') {
     let actualEvent = event;
     let actualValue = value;
@@ -3027,6 +3290,13 @@ async function loadTeacherGrid() {
     const teacherFilter = document.getElementById('teacherSelectFilter');
     if (!grid) return;
 
+    if (!selectedSemesterId) {
+        if (_semestersInitialized) {
+            grid.innerHTML = '<div class="p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+        }
+        return;
+    }
+
     try {
         const [facultyRes, scheduleRes] = await Promise.all([
             apiFetch('/api/faculty'),
@@ -3036,6 +3306,14 @@ async function loadTeacherGrid() {
         const facultyData = await facultyRes.json();
         const scheduleGrouped = await scheduleRes.json();
         const selectedTeacher = teacherFilter?.value || 'all';
+
+        grid.innerHTML = '';
+
+        const hasSemester = !!selectedSemesterId;
+        if (!hasSemester) {
+            grid.innerHTML = '<div class="p-8 text-slate-400 text-center">No semesters available. Click "Add Semester" to create one.</div>';
+            return;
+        }
 
         // 1. Filter dropdown population
         if (teacherFilter && (teacherFilter.options.length <= 1 || !document.getElementById('teacherDropdownOptions')?.innerHTML)) {
@@ -3090,6 +3368,11 @@ async function loadTeacherGrid() {
                 uniqueFacultyData.push(t);
             }
         });
+
+        if (uniqueFacultyData.length === 0) {
+            grid.innerHTML = '<div class="p-8 text-slate-400 text-center">No teachers found. Click "Add Teacher" to create one.</div>';
+            return;
+        }
 
         let rowsAdded = 0;
         uniqueFacultyData.forEach(teacher => {

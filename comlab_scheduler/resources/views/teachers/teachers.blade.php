@@ -8,6 +8,7 @@
                     <span class="text-[#1e1b4b]">MANAGE</span> <span class="text-[#fbbf24]">TEACHERS</span>
                 </h1>
                 <button
+                    id="addTeacherBtn"
                     class="toggle-btn outline !px-8 !py-3 !text-lg !font-extrabold rounded-full transition-all whitespace-nowrap"
                     onclick="openModal('faculty')">
                     Add Teacher

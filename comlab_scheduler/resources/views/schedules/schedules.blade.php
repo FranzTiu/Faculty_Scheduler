@@ -9,6 +9,7 @@
                     <span class="text-[#1e1b4b]">COMLAB</span> <span class="text-[#fbbf24]">SCHEDULER</span>
                 </h1>
                 <button
+                    id="addScheduleBtn"
                     class="toggle-btn outline !px-8 !py-3 !text-lg !font-extrabold rounded-full transition-all whitespace-nowrap"
                     onclick="openModal('schedules')">
                     Add Schedule
@@ -16,10 +17,11 @@
             </div>
 
             {{-- Filter matching Home page --}}
-            <div class="filter-section mb-6">
-                <div class="custom-dropdown" id="roomFilterDropdown">
-                    <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'roomFilterDropdown')">
-                        <span id="selectedRoomText">All Schedule</span>
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 select-none">
+                {{-- Day Filter (Left) --}}
+                <div class="custom-dropdown" id="dayFilterDropdown">
+                    <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'dayFilterDropdown')">
+                        <span id="selectedDayText">All Schedule</span>
                         <div class="dropdown-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -27,12 +29,36 @@
                             </svg>
                         </div>
                     </div>
-                    <div class="custom-dropdown-options" id="roomDropdownOptions">
-                        <!-- Options will be populated via app.js -->
+                    <div class="custom-dropdown-options" id="dayDropdownOptions">
+                        <div class="custom-option selected" data-value="all" onclick="selectCustomOption(event, 'all', 'All Schedule', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">All Schedule</div>
+                        <div class="custom-option" data-value="Monday" onclick="selectCustomOption(event, 'Monday', 'Monday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Monday</div>
+                        <div class="custom-option" data-value="Tuesday" onclick="selectCustomOption(event, 'Tuesday', 'Tuesday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Tuesday</div>
+                        <div class="custom-option" data-value="Wednesday" onclick="selectCustomOption(event, 'Wednesday', 'Wednesday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Wednesday</div>
+                        <div class="custom-option" data-value="Thursday" onclick="selectCustomOption(event, 'Thursday', 'Thursday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Thursday</div>
+                        <div class="custom-option" data-value="Friday" onclick="selectCustomOption(event, 'Friday', 'Friday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Friday</div>
+                        <div class="custom-option" data-value="Saturday" onclick="selectCustomOption(event, 'Saturday', 'Saturday', 'dayFilterDropdown', 'selectedDayText', 'dayFilter')">Saturday</div>
                     </div>
-                    <!-- Hidden select for technical logic -->
-                    <select id="roomFilter" class="hidden" onchange="handleFilterChange()">
+                    <select id="dayFilter" class="hidden" onchange="handleSchedulePageFilterChange()">
                         <option value="all">All Schedule</option>
+                    </select>
+                </div>
+
+                {{-- Time Filter (Right) --}}
+                <div class="custom-dropdown" id="timeFilterDropdown">
+                    <div class="custom-dropdown-selected" onclick="toggleCustomDropdown(event, 'timeFilterDropdown')">
+                        <span id="selectedTimeText">All Time</span>
+                        <div class="dropdown-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="custom-dropdown-options" id="timeDropdownOptions">
+                         <div class="custom-option selected" data-value="all" onclick="selectCustomOption(event, 'all', 'All Time', 'timeFilterDropdown', 'selectedTimeText', 'timeFilter')">All Time</div>
+                    </div>
+                    <select id="timeFilter" class="hidden" onchange="handleSchedulePageFilterChange()">
+                        <option value="all">All Time</option>
                     </select>
                 </div>
             </div>
@@ -48,10 +74,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof populateRoomDropdowns === 'function') {
-                populateRoomDropdowns();
-            }
-            loadLabGrid();
+            loadSchedulePageData();
         });
     </script>
 @endpush

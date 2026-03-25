@@ -645,36 +645,20 @@ class SystemController extends Controller
     public function addSchedule(Request $request)
     {
         $semester = $this->resolveSemester($request);
+        
+        $days = is_array($request->day) ? $request->day : [$request->day];
+        $subjectIds = is_array($request->subject_id) ? $request->subject_id : [$request->subject_id];
+        
         $faculty_id = $request->faculty_id ? intval($request->faculty_id) : 0;
-        $subject_id = $request->subject_id ? intval($request->subject_id) : 0;
-        if ($subject_id === 0 && !empty($request->subject_code)) {
-            $subject = Subject::firstOrCreate(
-                ['semester_id' => $semester->id, 'subject_code' => $request->subject_code],
-                ['subject_name' => $request->subject_name ?: $request->subject_code]
-            );
-            if (!empty($request->subject_name)) {
-                $subject->update(['subject_name' => $request->subject_name]);
-            }
-            $subject_id = $subject->id;
-        }
-
         $room_id = $request->room_id ? intval($request->room_id) : 0;
-        if ($room_id === 0 && !empty($request->room_name)) {
-            $room = Room::firstOrCreate(
-                ['semester_id' => $semester->id, 'room_name' => $request->room_name],
-                ['campus' => 'TBA']
-            );
-            $room_id = $room->id;
+
+        if ($room_id === 0 || $faculty_id === 0 || empty($subjectIds) || empty($days)) {
+            return response()->json(["success" => false, "error" => "Please select at least one Day, Subject, a valid Room and Teacher."]);
         }
 
-        if ($room_id === 0 || $faculty_id === 0 || $subject_id === 0) {
-            return response()->json(["success" => false, "error" => "Please select a valid Faculty, Subject and Room."]);
-        }
-
-        $subject = Subject::where('semester_id', $semester->id)->find($subject_id);
         $room = Room::where('semester_id', $semester->id)->find($room_id);
-        if (!$subject || !$room) {
-            return response()->json(["success" => false, "error" => "Selected Subject/Room does not belong to the currently selected semester."]);
+        if (!$room) {
+            return response()->json(["success" => false, "error" => "Selected Room does not belong to the currently selected semester."]);
         }
 
         $section_id = null;
@@ -683,18 +667,24 @@ class SystemController extends Controller
             $section_id = $sectionModel->id;
         }
 
-        $schedule = Schedule::create([
-            'semester_id' => $semester->id,
-            'teacher_id' => $faculty_id,
-            'subject_id' => $subject_id,
-            'room_id' => $room_id,
-            'section_id' => $section_id,
-            'day' => $request->day,
-            'time_start' => $request->start_time,
-            'time_end' => $request->end_time
-        ]);
+        $createdCount = 0;
+        foreach ($days as $day) {
+            foreach ($subjectIds as $subject_id) {
+                Schedule::create([
+                    'semester_id' => $semester->id,
+                    'teacher_id' => $faculty_id,
+                    'subject_id' => intval($subject_id),
+                    'room_id' => $room_id,
+                    'section_id' => $section_id,
+                    'day' => $day,
+                    'time_start' => $request->start_time,
+                    'time_end' => $request->end_time
+                ]);
+                $createdCount++;
+            }
+        }
 
-        return response()->json(["success" => true, "id" => $schedule->id]);
+        return response()->json(["success" => true, "count" => $createdCount]);
     }
 
     public function updateSchedule(Request $request, $id)
@@ -794,6 +784,7 @@ class SystemController extends Controller
                 'start_time' => $s->time_start,
                 'end_time' => $s->time_end,
                 'subject_code' => $s->subject ? $s->subject->subject_code : null,
+                'subject_name' => $s->subject ? $s->subject->subject_name : null,
                 'faculty_name' => $s->teacher ? $s->teacher->name : null,
                 'section' => $s->section ? $s->section->section : null
             ];

@@ -140,6 +140,66 @@ body.logged-out #dashboardPage {
     z-index: 1;
 }
 
+.checklist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left !important;
+    align-items: flex-start !important;
+}
+
+/* Remove 'double box' effect in dropdowns */
+.custom-dropdown-options .checklist-container {
+    border: none !important;
+    background: transparent !important;
+    padding: 0.4rem !important;
+    border-radius: 0 !important;
+}
+
+.checklist-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.8rem;
+    cursor: pointer;
+    width: 100%;
+    padding: 0.4rem;
+    transition: background 0.2s;
+    justify-content: flex-start !important;
+}
+
+.checklist-item:hover {
+    background: #e2e8f0;
+}
+
+.checklist-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #1e1b4b;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checklist-item span {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #1e1b4b;
+    text-align: left !important;
+    display: inline-block;
+    line-height: 1.2;
+}
+
+.checklist-item .sub-text {
+    font-weight: 400;
+    color: #64748b;
+}
+
 .login-left .it-faculty {
     position: absolute;
     top: 2rem;
@@ -1389,10 +1449,16 @@ input[type="hidden"] {
 /* Consolidated Custom Dropdown Styling */
 .custom-dropdown {
     position: relative;
-    width: 240px !important;
-    max-width: 240px !important;
+    width: 240px;
+    max-width: 240px;
     font-family: 'Inter', sans-serif;
     z-index: 1001;
+}
+
+/* Ensure modal style dropdowns stretch to full width */
+.modal-style-dropdown {
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .custom-dropdown-selected {
@@ -1406,7 +1472,7 @@ input[type="hidden"] {
     font-size: 0.9rem !important;
     display: flex;
     justify-content: space-between;
-    align-items: flex-end !important;
+    align-items: center !important;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
     transition: all 0.3s ease;
     min-height: 40px;
@@ -1459,9 +1525,13 @@ input[type="hidden"] {
     transform: rotate(180deg);
 }
 
+.custom-dropdown.open {
+    z-index: 5001 !important;
+}
+
 .custom-dropdown-options {
     position: absolute;
-    top: calc(100% + 8px);
+    top: 100%;
     left: 0;
     width: 100%;
     background: white !important;
@@ -2192,10 +2262,10 @@ th {
 .teacher-manage-table th:nth-child(4),
 .teacher-manage-table th:nth-child(5) { font-weight: 700; }
 
-/* Unified first column style for all management tables */
-.teacher-manage-table td:nth-child(1),
-.teacher-manage-table td.teacher-name-cell,
-.teacher-manage-table td.status-cell { 
+/* Unified first column style for all management tables - Exclude empty state */
+.teacher-manage-table td:nth-child(1):not(.empty-state-cell),
+.teacher-manage-table td.teacher-name-cell:not(.empty-state-cell),
+.teacher-manage-table td.status-cell:not(.empty-state-cell) { 
     font-weight: 900 !important; 
     font-size: 1.1rem !important;
     color: #1e1b4b !important;
@@ -2205,11 +2275,11 @@ th {
 
 .empty-state-cell {
     text-align: center !important;
-    color: #475569 !important;
+    color: #94a3b8 !important;
     padding: 6rem 2rem !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 1.1rem !important; /* Matched to table cell size */
-    font-weight: 600 !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
     background: white !important;
     border: none !important;
 }
@@ -2269,7 +2339,7 @@ th {
     color: white !important;
 }
 
-#scheduleCombinedTable td:nth-child(1) {
+#scheduleCombinedTable td:nth-child(1):not(.empty-state-cell) {
     width: 45% !important;
     font-weight: 900 !important;
     /* Bold as per image */
@@ -2286,8 +2356,8 @@ th {
     width: 20% !important;
 }
 
-/* Color structure for 3-column table */
-#scheduleCombinedTable tbody td:nth-child(1) {
+/* Color structure for 3-column table - Exclude empty state */
+#scheduleCombinedTable tbody td:nth-child(1):not(.empty-state-cell) {
     background: #f1f5f9 !important;
 }
 
