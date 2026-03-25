@@ -36,5 +36,10 @@ class Semester extends Model
     {
         return $this->hasMany(Schedule::class);
     }
+
+    public function teachers()
+    {
+        return $this->hasMany(Teacher::class);
+    }
 }
 

@@ -11,7 +11,11 @@ class Room extends Model
 
     protected $table = 'rooms';
     protected $primaryKey = 'id';
-    protected $fillable = ['semester_id', 'room_name', 'campus'];
+    protected $fillable = ['semester_id', 'room_name', 'campus', 'is_default'];
+
+    protected $casts = [
+        'is_default' => 'boolean',
+    ];
 
     public function schedules()
     {

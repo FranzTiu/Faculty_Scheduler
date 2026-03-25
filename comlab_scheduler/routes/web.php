@@ -16,7 +16,7 @@ Route::get('/login', function () {
 
 Route::post('/login', [SystemController::class , 'login'])->name('login.post');
 Route::post('/reset-password', [SystemController::class , 'resetPassword'])->name('password.reset');
-Route::post('/logout', [SystemController::class , 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [SystemController::class , 'logout'])->name('logout');
 
 // Protected Dashboard and UI Routes
 Route::middleware('auth')->group(function () {

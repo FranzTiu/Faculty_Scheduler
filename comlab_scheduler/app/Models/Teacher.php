@@ -11,7 +11,12 @@ class Teacher extends Model
 
     protected $table = 'teachers';
     protected $primaryKey = 'id';
-    protected $fillable = ['name', 'employment_status', 'subject_id', 'section_id'];
+    protected $fillable = ['semester_id', 'name', 'employment_status', 'subject_id', 'section_id'];
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
+    }
 
     public function schedules()
     {

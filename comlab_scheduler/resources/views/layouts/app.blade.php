@@ -8,7 +8,7 @@
     <title>Faculty Management System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=7.0">
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=7.2">
 
 
 
@@ -110,6 +110,16 @@
                         <input type="hidden" id="sm_year_level" value="">
                     </div>
 
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: flex-start; gap: 0.8rem; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: #1e1b4b;">
+                            <input type="checkbox" id="sm_is_default" style="width: 20px; height: 20px; accent-color: #1e1b4b; cursor: pointer; margin-top: 2px;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                                <span style="white-space: nowrap;">Set as Default</span>
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 400;">(Include in future Default Curriculum semesters)</span>
+                            </div>
+                        </label>
+                    </div>
+
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
                         <button type="button" class="btn-modal btn-modal-cancel" onclick="closeSubjectModal()">Cancel</button>
                         <button type="submit" class="btn-modal btn-modal-save">Save</button>
@@ -155,6 +165,17 @@
                         </div>
                         <input type="hidden" id="r_location" value="">
                     </div>
+
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: flex-start; gap: 0.8rem; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: #1e1b4b;">
+                            <input type="checkbox" id="r_is_default" style="width: 20px; height: 20px; accent-color: #1e1b4b; cursor: pointer; margin-top: 2px;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                                <span style="white-space: nowrap;">Set as Default</span>
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 400;">(Include in future Default Curriculum semesters)</span>
+                            </div>
+                        </label>
+                    </div>
+
                     <div style="display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem;">
                         <button type="button" class="btn-modal btn-modal-cancel" onclick="closeRoomModal()">Cancel</button>
                         <button type="submit" class="btn-modal btn-modal-save">Save</button>
@@ -179,8 +200,8 @@
                     This action cannot be undone. This item will be permanently removed from the system.
                 </p>
                 <div style="display: flex; gap: 0.8rem; justify-content: center;">
-                    <button type="button" class="btn-modal btn-modal-cancel" style="min-width: 120px;" onclick="closeDeleteModal()">Cancel</button>
-                    <button type="button" class="btn-modal btn-modal-save" style="min-width: 120px; background: #dc2626; border-color: #dc2626;" onclick="confirmDelete()">Delete</button>
+                    <button type="button" class="btn-modal btn-modal-cancel" style="min-width: 120px;" onclick="closeSemesterDeleteModal()">Cancel</button>
+                    <button type="button" class="btn-modal btn-modal-save" style="min-width: 120px; background: #dc2626; border-color: #dc2626;" onclick="confirmSemesterDelete()">Delete</button>
                 </div>
             </div>
         </div>
@@ -255,7 +276,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     </script>
-    <script src="{{ asset('assets/app.js') }}?v=5.3"></script>
+    <script src="{{ asset('assets/app.js') }}?v=5.6"></script>
     @stack('scripts')
 </body>
 

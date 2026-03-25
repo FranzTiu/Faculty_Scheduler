@@ -117,32 +117,66 @@ async function apiFetch(url, options = {}) {
     return fetch(withSemester(url), { ...options, headers });
 }
 
-async function deleteSemesterDialog(id, label) {
-    if (confirm(`Are you sure you want to completely delete "${label}"?\n\nThis will permanently remove it along with its computer labs, subjects, and schedules. This action cannot be undone.`)) {
-        try {
-            const res = await fetch(`/api/semesters/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await res.json();
+let semesterToDelete = null;
 
-            if (data.success) {
-                // Remove the stored selected ID since the active semester might have shifted
-                storeSemesterId('');
+function openSemesterDeleteModal(id, label) {
+    console.log("Setting semesterToDelete:", id, label);
+    semesterToDelete = id;
+    const overlay = document.getElementById('deleteModalOverlay');
+    const msg = document.getElementById('deleteModalMessage');
+    if (overlay) overlay.style.display = 'flex';
+    if (msg) msg.textContent = `Are you sure you want to completely delete "${label}"?\n\nThis will permanently remove it along with its computer labs, subjects, and schedules. This action cannot be undone.`;
+}
+window.openSemesterDeleteModal = openSemesterDeleteModal;
 
-                // Optional: trigger full page refresh to resync everything uniformly
-                window.location.reload();
-            } else {
-                alert(data.message || 'Failed to delete semester.');
-            }
-        } catch (err) {
-            console.error('Error deleting semester:', err);
-            alert('An error occurred while deleting the semester.');
-        }
+function closeSemesterDeleteModal() {
+    console.log("Closing semester delete modal");
+    const overlay = document.getElementById('deleteModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    semesterToDelete = null;
+}
+window.closeSemesterDeleteModal = closeSemesterDeleteModal;
+
+async function confirmSemesterDelete() {
+    console.log("confirmSemesterDelete called for ID:", semesterToDelete);
+    if (!semesterToDelete) {
+        console.warn("No semesterToDelete set!");
+        return;
     }
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!token) {
+            console.error("CSRF token not found!");
+            showToast("Session expired or security token missing.", "error");
+            return;
+        }
+
+        const res = await fetch(`/api/semesters/${semesterToDelete}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        const data = await res.json();
+        console.log("Semester Delete response:", data);
+        if (data.success) {
+            storeSemesterId('');
+            closeSemesterDeleteModal();
+            window.location.reload();
+        } else {
+            showToast(data.message || 'Failed to delete semester.', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting semester:', err);
+        showToast('An error occurred while deleting the semester.', 'error');
+    }
+}
+window.confirmSemesterDelete = confirmSemesterDelete;
+
+async function deleteSemesterDialog(id, label) {
+    openSemesterDeleteModal(id, label);
 }
 
 async function initSemesters() {
@@ -183,68 +217,76 @@ async function initSemesters() {
         sEl.innerHTML = '';
         oEl.innerHTML = '';
 
-        list.forEach(item => {
-            const opt = new Option(item.label, item.id);
-            sEl.add(opt);
+        if (list.length === 0) {
+            tEl.textContent = 'No Available Semesters';
+            const wrapEl = document.getElementById(p.wrap);
+            if (wrapEl) wrapEl.classList.remove('has-selection');
+        } else {
+            list.forEach(item => {
+                const opt = new Option(item.label, item.id);
+                sEl.add(opt);
 
-            const div = document.createElement('div');
-            const isSelected = String(selectedSemesterId) === String(item.id);
-            div.className = `custom-option ${isSelected ? 'selected' : ''}`;
-            div.dataset.value = String(item.id);
-            div.style.display = 'flex';
-            div.style.justifyContent = 'space-between';
-            div.style.alignItems = 'center';
+                const div = document.createElement('div');
+                const isSelected = String(selectedSemesterId) === String(item.id);
+                div.className = `custom-option ${isSelected ? 'selected' : ''}`;
+                div.dataset.value = String(item.id);
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.alignItems = 'center';
 
-            const textSpan = document.createElement('span');
-            textSpan.textContent = item.label;
-            div.appendChild(textSpan);
+                const textSpan = document.createElement('span');
+                textSpan.textContent = item.label;
+                div.appendChild(textSpan);
 
-            // Add a subtle delete icon (SVG)
-            const delBtn = document.createElement('div');
-            delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-            delBtn.style.cursor = 'pointer';
-            delBtn.style.padding = '4px';
-            delBtn.style.borderRadius = '4px';
-            delBtn.style.display = 'flex';
-            delBtn.style.alignItems = 'center';
-            delBtn.style.justifyContent = 'center';
-            delBtn.style.transition = 'all 0.2s';
-            delBtn.title = 'Delete Semester';
+                // Add a subtle delete icon (SVG)
+                const delBtn = document.createElement('div');
+                delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+                delBtn.style.cursor = 'pointer';
+                delBtn.style.padding = '4px';
+                delBtn.style.borderRadius = '4px';
+                delBtn.style.display = 'flex';
+                delBtn.style.alignItems = 'center';
+                delBtn.style.justifyContent = 'center';
+                delBtn.style.transition = 'all 0.2s';
+                delBtn.title = 'Delete Semester';
 
-            delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
-            delBtn.onmouseout = () => delBtn.style.background = 'transparent';
+                delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+                delBtn.onmouseout = () => delBtn.style.background = 'transparent';
 
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                deleteSemesterDialog(item.id, item.label);
-            };
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteSemesterDialog(item.id, item.label);
+                };
 
-            div.appendChild(delBtn);
+                div.appendChild(delBtn);
 
-            if (isSelected) {
-                tEl.textContent = item.label;
-                const wrapEl = document.getElementById(p.wrap);
-                if (wrapEl) wrapEl.classList.add('has-selection');
+                if (isSelected) {
+                    tEl.textContent = item.label;
+                    const wrapEl = document.getElementById(p.wrap);
+                    if (wrapEl) wrapEl.classList.add('has-selection');
+                }
+
+                div.onclick = (e) => {
+                    if (e) e.stopPropagation();
+                    selectCustomOption(e, String(item.id), item.label, p.wrap, p.txt, p.sel);
+                    handleSemesterChange(p.sel);
+                };
+                oEl.appendChild(div);
+            });
+
+            if (list.length > 0) {
+                const divider = document.createElement('div');
+                divider.style.cssText = 'height:1px;background:#e2e8f0;margin:8px 4px;';
+                oEl.appendChild(divider);
             }
-
-            div.onclick = (e) => {
-                if (e) e.stopPropagation();
-                selectCustomOption(e, String(item.id), item.label, p.wrap, p.txt, p.sel);
-                handleSemesterChange(p.sel);
-            };
-            oEl.appendChild(div);
-        });
+        }
 
         // Add semester button is ALWAYS added
-        const divider = document.createElement('div');
-        divider.style.cssText = 'height:1px;background:#e2e8f0;margin:8px 4px;';
-        oEl.appendChild(divider);
-
         const addDiv = document.createElement('div');
         addDiv.className = 'custom-option add-semester-btn';
         addDiv.style.fontWeight = '700';
         addDiv.style.color = '#1e1b4b';
-        addDiv.textContent = '+ Add Semester';
+        addDiv.textContent = list.length === 0 ? 'Add Semester' : '+ Add Semester';
         addDiv.onclick = (e) => {
             if (e) e.stopPropagation();
             const wrap = document.getElementById(p.wrap);
@@ -329,7 +371,10 @@ function applyCurriculumRestrictions() {
 function openAddSemesterModal() {
     const overlay = document.getElementById('semesterModalOverlay');
     const err = document.getElementById('semesterError');
-    if (err) err.style.display = 'none';
+    if (err) {
+        err.style.display = 'none';
+        err.textContent = '';
+    }
     if (overlay) overlay.style.display = 'flex';
     
     // Set default text for custom dropdowns
@@ -337,6 +382,10 @@ function openAddSemesterModal() {
     if (termText) termText.textContent = 'Select Semester';
     const defText = document.getElementById('sem_defaultText');
     if (defText) defText.textContent = 'Yes';
+    
+    // Clear hidden inputs
+    document.getElementById('sem_term').value = '';
+    document.getElementById('sem_default').value = '1';
 }
 
 function closeAddSemesterModal() {
@@ -347,11 +396,18 @@ function closeAddSemesterModal() {
 
 document.getElementById('semesterForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn ? btn.textContent : 'Save';
+    
     const term = document.getElementById('sem_term')?.value;
     const sy = document.getElementById('sem_sy')?.value?.trim();
     const useDefault = document.getElementById('sem_default')?.value === '1';
     const err = document.getElementById('semesterError');
-    if (err) err.style.display = 'none';
+    
+    if (err) {
+        err.style.display = 'none';
+        err.textContent = '';
+    }
 
     if (!term || !sy) {
         if (err) {
@@ -361,21 +417,19 @@ document.getElementById('semesterForm')?.addEventListener('submit', async (e) =>
         return;
     }
 
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+    }
+
     try {
-        const res = await fetch('/api/semesters', {
+        const res = await apiFetch('/api/semesters', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: JSON.stringify({ term, school_year: sy, use_default_curriculum: useDefault })
         });
 
-        let data;
-        const text = await res.text();
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            console.error('Non-JSON response:', text);
-            data = { success: false, message: 'Invalid server response. Please check logs.' };
-        }
+        const data = await res.json();
 
         if (!res.ok || !data.success) {
             const msg = data?.message || (data?.errors ? Object.values(data.errors).flat().join(' ') : 'Failed to create semester.');
@@ -383,20 +437,32 @@ document.getElementById('semesterForm')?.addEventListener('submit', async (e) =>
                 err.textContent = msg;
                 err.style.display = 'block';
             }
-            return; // STOP HERE to prevent catch block from showing "Network error"
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+            return;
         }
 
         closeAddSemesterModal();
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+
         if (data.semester?.id) storeSemesterId(data.semester.id);
         await initSemesters();
-        // Force refresh all grids after adding
         await handleSemesterChange('semesterSelect');
         showToast('Semester created successfully!', 'success');
     } catch (e2) {
         console.error(e2);
         if (err) {
-            err.textContent = 'Network/server error. Failed to create semester.';
+            err.textContent = 'Network or server error. Please try again.';
             err.style.display = 'block';
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
     }
 });
@@ -1823,7 +1889,10 @@ async function loadCounts() {
         const roomEl = document.getElementById('roomCount');
         const schedEl = document.getElementById('scheduleCount');
 
-        if (facultyEl) facultyEl.textContent = Array.isArray(facultyData) ? facultyData.length : 0;
+        if (facultyEl) {
+            const uniqueTeachers = new Set(Array.isArray(facultyData) ? facultyData.map(t => t.name) : []);
+            facultyEl.textContent = uniqueTeachers.size;
+        }
         if (roomEl) roomEl.textContent = Array.isArray(roomsData) ? roomsData.length : 0;
         if (schedEl) schedEl.textContent = Array.isArray(schedulesData) ? schedulesData.length : 0;
     } catch (e) {
@@ -2305,7 +2374,7 @@ async function loadScheduleCombinedData() {
                         <td class="campus-cell">${safeCampus}</td>
                         <td class="action-cell">
                             <div class="action-btn-group flex justify-center !gap-3">
-                                <button class="action-btn edit-btn" onclick="openEditRoomModal(${room.id}, '${escapedName}', '${escapedCampus}')" title="Edit">
+                                <button class="action-btn edit-btn" onclick="openEditRoomModal(${room.id}, '${escapedName}', '${escapedCampus}', ${!!room.is_default})" title="Edit">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -2382,11 +2451,13 @@ async function loadScheduleCombinedData() {
 // Subject Modal Logic
 async function openSubjectModal(subjectOrId = null, code = '', name = '', yearLevel = null) {
     let id = subjectOrId;
+    let isDefault = false;
     if (subjectOrId && typeof subjectOrId === 'object') {
         id = subjectOrId.id;
         code = subjectOrId.code || '';
         name = subjectOrId.name || '';
         yearLevel = subjectOrId.year_level;
+        isDefault = !!subjectOrId.is_default;
     }
 
     editingSubjectId = id;
@@ -2397,6 +2468,10 @@ async function openSubjectModal(subjectOrId = null, code = '', name = '', yearLe
 
     document.getElementById('sm_code').value = code;
     document.getElementById('sm_name').value = name;
+    
+    // Set as Default checkbox
+    const defaultCheck = document.getElementById('sm_is_default');
+    if (defaultCheck) defaultCheck.checked = isDefault;
     
     // Custom Year Level Dropdown Initialization
     const ylText = document.getElementById('sm_yearLevelText');
@@ -2421,6 +2496,9 @@ function closeSubjectModal() {
     if (ylText) ylText.textContent = 'Select Year Level';
     const ylInput = document.getElementById('sm_year_level');
     if (ylInput) ylInput.value = '';
+    // Reset is_default checkbox
+    const defaultCheck = document.getElementById('sm_is_default');
+    if (defaultCheck) defaultCheck.checked = false;
 }
 
 document.getElementById('subjectForm')?.addEventListener('submit', async (e) => {
@@ -2448,6 +2526,8 @@ document.getElementById('subjectForm')?.addEventListener('submit', async (e) => 
     const yearLevelVal = yearLevelInput ? yearLevelInput.value : '';
     if (yearLevelVal !== '' && yearLevelVal != null) body.year_level = parseInt(yearLevelVal, 10);
     if (roomId) body.room_id = roomId;
+    const isDefaultCheck = document.getElementById('sm_is_default');
+    body.is_default = isDefaultCheck ? isDefaultCheck.checked : false;
 
     try {
         let res;
@@ -2700,7 +2780,7 @@ async function loadLabGrid() {
     }
 }
 
-function openEditRoomModal(id = null, name = '', type = '') {
+function openEditRoomModal(id = null, name = '', type = '', isDefault = false) {
     document.getElementById('roomModalOverlay').style.display = 'flex';
     document.getElementById('roomModalTitle').textContent = id ? 'Edit Room' : 'Add New Room';
     const errBox = document.getElementById('roomError');
@@ -2713,6 +2793,10 @@ function openEditRoomModal(id = null, name = '', type = '') {
     const locInput = document.getElementById('r_location');
     if (locText) locText.textContent = type || 'Select Campus';
     if (locInput) locInput.value = type || '';
+
+    // Set as Default checkbox
+    const defaultCheck = document.getElementById('r_is_default');
+    if (defaultCheck) defaultCheck.checked = !!isDefault;
     
     document.getElementById('roomForm').onsubmit = (e) => saveNewRoom(e, id);
 }
@@ -2727,6 +2811,9 @@ function closeRoomModal() {
     if (locText) locText.textContent = 'Select Campus';
     const locInput = document.getElementById('r_location');
     if (locInput) locInput.value = '';
+    // Reset is_default checkbox
+    const defaultCheck = document.getElementById('r_is_default');
+    if (defaultCheck) defaultCheck.checked = false;
 }
 
 async function saveNewRoom(event, editingId = null) {
@@ -2757,12 +2844,14 @@ async function saveNewRoom(event, editingId = null) {
     const isEditing = !!editingId;
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing ? `/api/rooms/${editingId}` : '/api/rooms';
+    const isDefaultCheck = document.getElementById('r_is_default');
+    const isDefault = isDefaultCheck ? isDefaultCheck.checked : false;
 
     try {
         const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            body: JSON.stringify({ name, location })
+            body: JSON.stringify({ name, location, is_default: isDefault })
         });
 
         if (!res.ok) {
@@ -2956,14 +3045,15 @@ async function loadTeacherGrid() {
             teacherFilter.innerHTML = '<option value="all">All Teacher</option>';
             let optionsHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all" onclick="selectCustomOption(event, 'all', 'All Teacher', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">All Teacher</div>`;
 
-            facultyData.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(teacher => {
+            const uniqueNames = Array.from(new Set(facultyData.map(f => f.name))).sort((a, b) => a.localeCompare(b));
+            uniqueNames.forEach(name => {
                 const opt = document.createElement('option');
-                opt.value = teacher.name;
-                opt.textContent = teacher.name;
+                opt.value = name;
+                opt.textContent = name;
                 teacherFilter.appendChild(opt);
 
-                const safeName = teacher.name.replace(/'/g, "\\'");
-                optionsHtml += `<div class="custom-option ${currentVal === teacher.name ? 'selected' : ''}" data-value="${teacher.name}" onclick="selectCustomOption(event, '${safeName}', '${safeName}', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">${teacher.name}</div>`;
+                const safeName = name.replace(/'/g, "\\'");
+                optionsHtml += `<div class="custom-option ${currentVal === name ? 'selected' : ''}" data-value="${name}" onclick="selectCustomOption(event, '${safeName}', '${safeName}', 'teacherFilterDropdown', 'selectedTeacherText', 'teacherSelectFilter')">${name}</div>`;
             });
 
             if (teacherOptionsDiv) teacherOptionsDiv.innerHTML = optionsHtml;
@@ -2992,8 +3082,17 @@ async function loadTeacherGrid() {
 
         facultyData.sort((a, b) => a.name.localeCompare(b.name));
 
+        const uniqueFacultyData = [];
+        const seenNamesTable = new Set();
+        facultyData.forEach(t => {
+            if (!seenNamesTable.has(t.name)) {
+                seenNamesTable.add(t.name);
+                uniqueFacultyData.push(t);
+            }
+        });
+
         let rowsAdded = 0;
-        facultyData.forEach(teacher => {
+        uniqueFacultyData.forEach(teacher => {
             const teacherName = teacher.name;
             if (selectedTeacher !== 'all' && selectedTeacher !== teacherName) return;
 
