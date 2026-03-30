@@ -540,20 +540,16 @@ class SystemController extends Controller
             }
         }
 
-        // Prevent duplicate: same teacher name + subject_id within same semester
-        if ($subject_id) {
-            $existing = Teacher::where('semester_id', $semester->id)
-                ->where('name', $request->name)
-                ->where('subject_id', $subject_id)
-                ->first();
-            if ($existing) {
-                return response()->json([
-                    "success" => true,
-                    "id" => $existing->id,
-                    "duplicate" => true,
-                    "message" => "This subject is already assigned to this teacher.",
-                ]);
-            }
+        // Prevent duplicate: same teacher name within same semester
+        $existing = Teacher::where('semester_id', $semester->id)
+            ->where('name', $request->name)
+            ->first();
+            
+        if ($existing) {
+            return response()->json([
+                "success" => false,
+                "error" => "Teacher already exists.",
+            ], 400);
         }
 
         $teacher = Teacher::create([

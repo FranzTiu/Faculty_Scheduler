@@ -8,7 +8,7 @@
     <title>Faculty Management System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=7.2">
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}?v=7.3">
 
 
 
@@ -276,7 +276,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     </script>
-    <script src="{{ asset('assets/app.js') }}?v=5.6"></script>
+    <script src="{{ asset('assets/app.js') }}?v=5.7"></script>
     @stack('scripts')
 </body>
 

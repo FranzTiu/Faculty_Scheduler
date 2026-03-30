@@ -2597,3 +2597,11 @@ th {
     background: #dcfce7;
     transform: translateY(-1px);
 }
+/* Disabled state for dropdowns */
+.disabled-style {
+    opacity: 0.6;
+    pointer-events: none;
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed;
+}

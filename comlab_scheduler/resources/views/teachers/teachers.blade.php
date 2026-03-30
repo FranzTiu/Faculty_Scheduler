@@ -2,7 +2,8 @@
 
 @section('content')
     <section id="facultySection" class="content-section active block">
-        <div class="mb-8 pt-8 w-full">
+        <div class="mb-8 pt-4 w-full">
+            {{-- Header matching Home page styling --}}
             <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                 <h1 class="text-4xl md:text-5xl font-extrabold text-left uppercase font-['Playfair_Display'] tracking-wide">
                     <span class="text-[#1e1b4b]">MANAGE</span> <span class="text-[#fbbf24]">TEACHERS</span>
@@ -52,16 +53,16 @@
                             <div class="custom-option selected" data-value="all"
                                 onclick="selectCustomOption(event, 'all', 'All Status', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
                                 All Status</div>
-                            <div class="custom-option" data-value="Full-time"
-                                onclick="selectCustomOption(event, 'Full-time', 'Full-time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
-                                Full-time</div>
+                            <div class="custom-option" data-value="Full-Time"
+                                onclick="selectCustomOption(event, 'Full-Time', 'Full-Time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
+                                Full-Time</div>
                             <div class="custom-option" data-value="Part-Time"
                                 onclick="selectCustomOption(event, 'Part-Time', 'Part-Time', 'teacherStatusFilterDropdown', 'selectedTeacherStatusText', 'teacherStatusFilter')">
                                 Part-Time</div>
                         </div>
                         <select id="teacherStatusFilter" class="hidden">
                             <option value="all">All Status</option>
-                            <option value="Full-time">Full-time</option>
+                            <option value="Full-Time">Full-Time</option>
                             <option value="Part-Time">Part-Time</option>
                         </select>
                     </div>
@@ -73,11 +74,11 @@
                 <table id="facultyTable" class="teacher-manage-table w-full">
                     <thead>
                         <tr>
-                            <th>Teacher(s) Name</th>
-                            <th>Employment Status</th>
-                            <th>Subjects</th>
-                            <th>Section(s)</th>
-                            <th>Action</th>
+                            <th style="width: 20%;">Teacher</th>
+                            <th style="width: 15%;">Employment Status</th>
+                            <th style="width: 35%;">Subject</th>
+                            <th style="width: 20%;">Section</th>
+                            <th style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="facultyTableBody">

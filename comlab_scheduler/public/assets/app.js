@@ -1101,8 +1101,8 @@ function renderScheduleFormStructure() {
         </div>
 
         <div class="form-group" id="subjectGroup">
-            <label>Subject(s)</label>
-            <div class="custom-dropdown modal-style-dropdown multi-select" id="m_subjectDropdown" onclick="toggleCustomDropdown(event, 'm_subjectDropdown')">
+            <label>Subject(s) <span style="font-size: 0.75rem; font-weight: normal; color: #94a3b8;">(Select Teacher First)</span></label>
+            <div class="custom-dropdown modal-style-dropdown multi-select disabled-style" id="m_subjectDropdown" onclick="handleSubjectDropdownClick(event)">
                 <div class="custom-dropdown-selected">
                     <span id="m_subjectText">Select Subject(s)</span>
                     <div class="dropdown-icon">
@@ -1112,7 +1112,7 @@ function renderScheduleFormStructure() {
                     </div>
                 </div>
                 <div class="custom-dropdown-options" id="m_subjectChecklist" onclick="event.stopPropagation()">
-                    <div style="text-align: center; color: #64748b; padding: 10px;">Loading subjects...</div>
+                    <div style="text-align: center; color: #64748b; padding: 15px; font-size: 0.85rem;">Please select a teacher first to load their subjects.</div>
                 </div>
             </div>
         </div>
@@ -1121,7 +1121,7 @@ function renderScheduleFormStructure() {
             <label>Teacher</label>
             <div class="custom-dropdown modal-style-dropdown" id="m_facultyDropdown" onclick="toggleCustomDropdown(event, 'm_facultyDropdown')">
                 <div class="custom-dropdown-selected">
-                    <span id="m_facultyText">Loading...</span>
+                    <span id="m_facultyText">Select Teacher</span>
                     <div class="dropdown-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M6 9l6 6 6-6"></path>
@@ -1131,10 +1131,7 @@ function renderScheduleFormStructure() {
                 <div class="custom-dropdown-options" id="m_facultyOptions"></div>
             </div>
             <input type="hidden" id="m_faculty_id" value="">
-            
-            <div id="facultyTypedInputs" style="display: none; margin-top: 6px; border: 2px dashed #fbbf24; padding: 8px; border-radius: 10px; background: rgba(30, 27, 75, 0.05);">
-                <input type="text" id="m_faculty_name" placeholder="Enter Teacher Name" style="font-size: 0.85rem;">
-            </div>
+            <input type="hidden" id="m_faculty_name_hidden" value="">
         </div>
 
         <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -1187,59 +1184,125 @@ function renderScheduleFormStructure() {
     syncTime('start');
     syncTime('end');
 }
-function populateScheduleDropdowns(rooms, subjects, faculty) {
-    // Sort rooms
-    rooms.sort((a, b) => {
-        const aName = a.name.toUpperCase();
-        const bName = b.name.toUpperCase();
-        const aIsLab = aName.startsWith('COMLAB') || aName.startsWith('COMPLAB');
-        const bIsLab = bName.startsWith('COMLAB') || bName.startsWith('COMPLAB');
-        if (aIsLab && !bIsLab) return -1;
-        if (!aIsLab && bIsLab) return 1;
-        return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
-    });
+let globalSubjectsData = [];
+let globalFacultyData = [];
 
-    const facultyStatusInput = document.getElementById('m_status');
-    if (facultyStatusInput) {
-        // Employment Status dropdown should NOT have Add New
-        // (It's already hardcoded as Full-time/Part-time)
-    }
+function populateScheduleDropdowns(rooms, subjects, faculty) {
+    globalSubjectsData = subjects;
+    globalFacultyData = faculty;
+
+    // Filter rooms to only show ComLabs
+    const comlabs = rooms.filter(r => r.name.toUpperCase().includes('COMLAB') || r.name.toUpperCase().includes('COMPLAB'));
+    comlabs.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
 
     const roomOptions = document.getElementById('m_roomOptions');
-    const roomText = document.getElementById('m_roomText');
-    if (roomText) roomText.textContent = 'Select Room';
     if (roomOptions) {
         let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Room\', \'m_roomDropdown\', \'m_roomText\', \'m_room_id\')">Select Room</div>';
-        html += rooms.map(r => `<div class="custom-option" data-value="${r.id}" onclick="selectCustomOption(event, '${r.id}', '${r.name}', 'm_roomDropdown', 'm_roomText', 'm_room_id')">${r.name}</div>`).join('');
+        html += comlabs.map(r => `<div class="custom-option" data-value="${r.id}" onclick="selectCustomOption(event, '${r.id}', '${r.name}', 'm_roomDropdown', 'm_roomText', 'm_room_id')">${r.name}</div>`).join('');
         roomOptions.innerHTML = html;
     }
 
-    // Populate Subject Checklist
-    const subjectChecklist = document.getElementById('m_subjectChecklist');
-    if (subjectChecklist) {
-        if (subjects.length === 0) {
-            subjectChecklist.innerHTML = '<div style="color: #64748b; font-size: 0.85rem; text-align: center; padding: 0.5rem;">No subjects available</div>';
-        } else {
-            subjectChecklist.innerHTML = `
-                <div class="checklist-container custom-scrollbar">
-                    ${subjects.map(s => `
-                        <label class="checklist-item">
-                            <input type="checkbox" class="modal-subject-checkbox" value="${s.id}" onchange="updateMultiSelectText('m_subjectDropdown', 'm_subjectText', 'modal-subject-checkbox', 'Subject')">
-                            <span>${s.code} <span class="sub-text">- ${s.name}</span></span>
-                        </label>
-                    `).join('')}
-                </div>
-            `;
-        }
+    const facultyOptions = document.getElementById('m_facultyOptions');
+    if (facultyOptions) {
+        // Group by teacher name for unique selection
+        const uniqueNames = [...new Set(faculty.map(f => f.name))].sort();
+        let html = '<div class="custom-option" data-value="" onclick="onScheduleTeacherChange(\'\', \'Select Teacher\')">Select Teacher</div>';
+        html += uniqueNames.map(name => {
+            const safeName = name.replace(/'/g, "\\'");
+            return `<div class="custom-option" data-value="${safeName}" onclick="onScheduleTeacherChange('${safeName}', '${safeName}')">${name}</div>`;
+        }).join('');
+        facultyOptions.innerHTML = html;
+    }
+}
+
+function handleSubjectDropdownClick(event) {
+    const facultyName = document.getElementById('m_faculty_name_hidden').value;
+    if (!facultyName) {
+        alert('Please select a teacher first.');
+        return;
+    }
+    toggleCustomDropdown(event, 'm_subjectDropdown');
+}
+
+function onScheduleTeacherChange(name, text) {
+    const dropdownId = 'm_facultyDropdown';
+    const textId = 'm_facultyText';
+    const nameInput = document.getElementById('m_faculty_name_hidden');
+    const selectedText = document.getElementById(textId);
+    if (selectedText) selectedText.textContent = text;
+    if (nameInput) nameInput.value = name;
+
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+        dropdown.querySelectorAll('.custom-option').forEach(opt => opt.classList.toggle('selected', opt.getAttribute('data-value') === name));
+        dropdown.classList.remove('open');
     }
 
-    const facultyOptions = document.getElementById('m_facultyOptions');
-    const facultyText = document.getElementById('m_facultyText');
-    if (facultyText) facultyText.textContent = 'Select Teacher';
-    if (facultyOptions) {
-        let html = '<div class="custom-option" data-value="" onclick="selectCustomOption(event, \'\', \'Select Teacher\', \'m_facultyDropdown\', \'m_facultyText\', \'m_faculty_id\')">Select Teacher</div>';
-        html += faculty.map(f => `<div class="custom-option" data-value="${f.id}" onclick="selectCustomOption(event, '${f.id}', '${f.name}', 'm_facultyDropdown', 'm_facultyText', 'm_faculty_id')">${f.name}</div>`).join('');
-        facultyOptions.innerHTML = html;
+    updateSubjectChecklist(name);
+}
+
+function updateSubjectChecklist(teacherName) {
+    const list = document.getElementById('m_subjectChecklist');
+    const dropdown = document.getElementById('m_subjectDropdown');
+    const textEl = document.getElementById('m_subjectText');
+    
+    if (!teacherName || teacherName === '') {
+        list.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px; font-size: 0.85rem;">Please select a teacher first to load their subjects.</div>';
+        dropdown.classList.add('disabled-style');
+        textEl.textContent = 'Select Subject(s)';
+        return;
+    }
+
+    // Find subjects assigned to this teacher name
+    const teacherAssignments = globalFacultyData.filter(f => f.name === teacherName);
+    const assignedSubjects = teacherAssignments.map(a => ({
+        id: a.subject_id,
+        code: a.subject_code,
+        name: a.subject_name
+    }));
+
+    // Unique subjects
+    const uniqueSubjects = [];
+    const seenIds = new Set();
+    assignedSubjects.forEach(s => {
+        if (s.id && !seenIds.has(s.id)) {
+            uniqueSubjects.push(s);
+            seenIds.add(s.id);
+        }
+    });
+
+    dropdown.classList.remove('disabled-style');
+    
+    if (uniqueSubjects.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px; font-size: 0.85rem;">This teacher has no assigned subjects.</div>';
+    } else {
+        list.innerHTML = `
+            <div class="checklist-container custom-scrollbar">
+                ${uniqueSubjects.map(s => `
+                    <label class="checklist-item">
+                        <input type="checkbox" class="modal-subject-checkbox" value="${s.id}" onchange="onScheduleSubjectToggle(event, '${teacherName}')">
+                        <span>${s.code} <span class="sub-text">- ${s.name}</span></span>
+                    </label>
+                `).join('')}
+            </div>
+        `;
+    }
+}
+
+function onScheduleSubjectToggle(event, teacherName) {
+    updateMultiSelectText('m_subjectDropdown', 'm_subjectText', 'modal-subject-checkbox', 'Subject');
+    
+    // Resolve faculty_id (Teacher record ID) for the selected subject(s)
+    // For now, we take the FIRST selected subject and resolve it to a faculty record that matches the name.
+    const checkboxes = document.querySelectorAll('.modal-subject-checkbox:checked');
+    if (checkboxes.length > 0) {
+        const firstSubId = parseInt(checkboxes[0].value);
+        const match = globalFacultyData.find(f => f.name === teacherName && f.subject_id == firstSubId);
+        if (match) {
+            document.getElementById('m_faculty_id').value = match.id;
+        }
+    } else {
+        document.getElementById('m_faculty_id').value = '';
     }
 }
 
@@ -1329,26 +1392,43 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
         const name = toTitleCase(document.getElementById('m_name').value.trim());
         const status = document.getElementById('m_status').value;
         
-        // Collect multiple selected subjects if available
+        // Collect multiple selected subjects
         const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
-        const rawSelectedSubjects = Array.from(subjectCheckboxes).map(cb => ({
+        const selectedSubjects = Array.from(subjectCheckboxes).map(cb => ({
             id: cb.dataset.id ? parseInt(cb.dataset.id) : 0,
             code: cb.value,
             name: cb.dataset.name
         }));
 
-        // Deduplicate by subject id
-        const seenIds = new Set();
-        const selectedSubjects = rawSelectedSubjects.filter(s => {
-            if (seenIds.has(s.id)) return false;
-            seenIds.add(s.id);
-            return true;
-        });
-        
-        // Fallback or old UI support
-        const subjectInput = document.getElementById('m_subject');
-        
-        const sectionInput = document.getElementById('m_section');
+        if (!name) {
+            if (errBox) {
+                errBox.textContent = 'Teacher name is required.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        if (selectedSubjects.length === 0) {
+            if (errBox) {
+                errBox.textContent = 'Please select at least one subject.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        // Check for duplicates only if ADDING a new teacher block
+        if (!editingFacultyId) {
+            const facListRes = await apiFetch('/api/faculty');
+            const allFaculty = await facListRes.json();
+            const exists = allFaculty.some(f => f.name.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                if (errBox) {
+                    errBox.textContent = 'Teacher already exists.';
+                    errBox.style.display = 'block';
+                }
+                return;
+            }
+        }
 
         // Row edit: update faculty + a specific schedule row
         if (editingFacultyId && editingScheduleId) {
@@ -1533,20 +1613,49 @@ document.getElementById('modalForm')?.addEventListener('submit', async (e) => {
     }
 
     if (currentSection === 'schedules') {
-        data.room_id = document.getElementById('m_room_id').value;
-        data.room_name = toTitleCase(document.getElementById('m_room_name')?.value?.trim() || '');
-        
-        // Collect multiple selected days
-        const dayCheckboxes = document.querySelectorAll('.day-checkbox:checked');
-        data.day = Array.from(dayCheckboxes).map(cb => cb.value);
-        
-        // Collect multiple selected subjects
+        const roomId = document.getElementById('m_room_id').value;
+        const facultyId = document.getElementById('m_faculty_id').value;
         const subjectCheckboxes = document.querySelectorAll('.modal-subject-checkbox:checked');
+        const dayCheckboxes = document.querySelectorAll('.day-checkbox:checked');
+        const section = document.getElementById('m_section').value.trim();
+
+        if (!facultyId || facultyId === '0' || facultyId === '') {
+            if (errBox) {
+                errBox.textContent = 'Please select a teacher first.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        if (subjectCheckboxes.length === 0) {
+            if (errBox) {
+                errBox.textContent = 'Please select at least one subject for the teacher.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        if (!roomId) {
+            if (errBox) {
+                errBox.textContent = 'Please select a room (ComLab).';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        if (dayCheckboxes.length === 0) {
+            if (errBox) {
+                errBox.textContent = 'Please select at least one day.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        data.room_id = roomId;
+        data.faculty_id = facultyId;
+        data.day = Array.from(dayCheckboxes).map(cb => cb.value);
         data.subject_id = Array.from(subjectCheckboxes).map(cb => parseInt(cb.value));
-        
-        data.faculty_id = document.getElementById('m_faculty_id').value;
-        data.faculty_name = toTitleCase(document.getElementById('m_faculty_name')?.value?.trim() || '');
-        data.section = document.getElementById('m_section').value;
+        data.section = section;
 
         // Read time pickers directly
         ['start', 'end'].forEach(type => {
@@ -1642,145 +1751,162 @@ async function loadTeacherManagementTable() {
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">Loading teachers...</td></tr>';
 
     try {
-        const facultyRes = await apiFetch('/api/faculty');
-        const facultyData = await facultyRes.json();
+        const res = await apiFetch('/api/faculty');
+        const facultyData = await res.json();
+        
         const filterStatus = document.getElementById('teacherStatusFilter')?.value || 'all';
         const filterName = document.getElementById('teacherNameFilter')?.value || 'all';
 
-        // --- Populate Teacher Name dropdown ---
+        // --- Populate Teacher Name dropdown (Same as Home Page but for this view) ---
         const nameOptionsDiv = document.getElementById('teacherNameOptions');
         const nameSelect = document.getElementById('teacherNameFilter');
         const nameTextEl = document.getElementById('selectedTeacherNameText');
 
-        // Build unique teacher names for dropdown
+        // Build unique names from faculty data (all teachers)
         const uniqueNames = [...new Set(facultyData.map(t => t.name))].sort();
 
         if (nameOptionsDiv && nameSelect) {
-            const currentNameVal = nameSelect.value || 'all';
+            const currentVal = nameSelect.value || 'all';
             nameSelect.innerHTML = '<option value="all">All Teachers</option>';
-            let nameOptHtml = `<div class="custom-option ${currentNameVal === 'all' ? 'selected' : ''}" data-value="all"
+            let nameOptHtml = `<div class="custom-option ${currentVal === 'all' ? 'selected' : ''}" data-value="all"
                 onclick="selectCustomOption(event,'all','All Teachers','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                 All Teachers</div>`;
 
             uniqueNames.forEach(name => {
                 const safeName = name.replace(/'/g, "\\'");
                 nameSelect.innerHTML += `<option value="${name}">${name}</option>`;
-                nameOptHtml += `<div class="custom-option ${currentNameVal === name ? 'selected' : ''}" data-value="${name}"
+                nameOptHtml += `<div class="custom-option ${currentVal === name ? 'selected' : ''}" data-value="${name}"
                     onclick="selectCustomOption(event, '${safeName}','${safeName}','teacherNameFilterDropdown','selectedTeacherNameText','teacherNameFilter')">
                     ${name}</div>`;
             });
             nameOptionsDiv.innerHTML = nameOptHtml;
-            nameSelect.value = currentNameVal;
-            if (nameTextEl) nameTextEl.textContent = currentNameVal === 'all' ? 'All Teachers' : currentNameVal;
+            nameSelect.value = currentVal;
+            if (nameTextEl) nameTextEl.textContent = currentVal === 'all' ? 'All Teachers' : currentVal;
         }
 
         tbody.innerHTML = '';
 
-        if (!Array.isArray(facultyData) || facultyData.length === 0) {
-            const hasSemester = !!selectedSemesterId;
-            tbody.innerHTML = hasSemester
-                ? '<tr><td colspan="5" class="empty-state-cell">No teachers found. Click "Add Teacher" to create one.</td></tr>'
-                : '<tr><td colspan="5" class="empty-state-cell">No semesters available. Click "Add Semester" to create one.</td></tr>';
-            return;
-        }
-
         // Group faculty rows by teacher name so same-name teachers show as one block
+        // Primary Source of Truth is the /api/faculty (Teachers Table)
         const teacherGroups = {};
         facultyData.forEach(t => {
             if (!teacherGroups[t.name]) {
                 teacherGroups[t.name] = {
+                    id: t.id,
                     name: t.name,
-                    employment_status: t.employment_status || 'Full-time',
-                    entries: []
+                    employment_status: t.employment_status || 'Full-Time',
+                    assignments: []
                 };
             }
-            teacherGroups[t.name].entries.push(t);
+            teacherGroups[t.name].assignments.push(t);
         });
 
-        Object.values(teacherGroups).forEach(group => {
-            const employmentStatus = group.employment_status;
+        let anyRowsDisplayed = false;
 
-            // Apply filters
-            if (filterStatus !== 'all' && employmentStatus !== filterStatus) return;
+        Object.values(teacherGroups).sort((a,b) => a.name.localeCompare(b.name)).forEach(group => {
             if (filterName !== 'all' && group.name !== filterName) return;
+            
+            const rawStatus = group.employment_status || 'Full-Time';
+            const employmentStatus = (rawStatus.toLowerCase() === 'full-time') ? 'Full-Time' : 'Part-Time';
+            if (filterStatus !== 'all' && employmentStatus !== filterStatus) return;
 
-            // Collect subject rows (entries that have a subject assigned)
-            const subjectEntries = group.entries.filter(e => e.subject_code);
-            const noSubjectEntries = group.entries.filter(e => !e.subject_code);
+            anyRowsDisplayed = true;
 
-            if (subjectEntries.length === 0) {
-                // Teacher with no subjects
-                const firstEntry = group.entries[0];
+            // Group entries by subject code for this section of assignments
+            const groupedBySubject = {};
+            group.assignments.forEach(entry => {
+                if (!entry.subject_code) return;
+                const key = `${entry.subject_code} \u2013 ${entry.subject_name}`;
+                if (!groupedBySubject[key]) {
+                    groupedBySubject[key] = {
+                        code: entry.subject_code,
+                        name: entry.subject_name,
+                        sections: new Set()
+                    };
+                }
+                if (entry.section) groupedBySubject[key].sections.add(entry.section);
+            });
+
+            const subjectGroups = Object.values(groupedBySubject);
+
+            if (subjectGroups.length === 0) {
+                // Should not happen with new validation but handle for legacy
                 const tr = document.createElement('tr');
+                tr.style.background = '#f1f5f9';
                 tr.innerHTML = `
                     <td class="teacher-name-cell">${group.name}</td>
                     <td class="status-cell">${employmentStatus}</td>
-                    <td class="subject-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0;">None</td>
-                    <td class="section-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0;">None</td>
-                    <td class="action-cell" style="vertical-align: middle;">
-                        <div class="action-btn-group flex justify-center !gap-3">
-                            ${getActionIcons(firstEntry.id, group.name, '', null, employmentStatus, '', '')}
+                    <td class="subject-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0; vertical-align: middle;">None</td>
+                    <td class="section-cell" style="text-align: center; color: #94a3b8; border-right: 1px solid #e2e8f0; vertical-align: middle;">None</td>
+                    <td class="action-cell" style="vertical-align: middle; background: #f1f5f9;">
+                         <div class="action-btn-group flex justify-center !gap-3">
+                            ${getActionIcons(group.id, group.name, '', null, employmentStatus, '', '')}
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             } else {
-                // Teacher with subjects — render one row per subject, rowspan for name/status/action
-                subjectEntries.forEach((entry, idx) => {
+                subjectGroups.forEach((subGroup, idx) => {
                     const tr = document.createElement('tr');
+                    tr.style.background = '#f1f5f9';
 
                     let prefixCells = '';
-
-                    const sectionText = entry.section || 'N/A';
-                    const subjCode = entry.subject_code || '';
-                    const subjName = entry.subject_name || '';
+                    let actionCell = '';
+                    const sectionsList = Array.from(subGroup.sections).sort().filter(x => x && x.trim() !== '').join(', ') || 'N/A';
 
                     if (idx === 0) {
                         prefixCells = `
-                            <td class="teacher-name-cell" rowspan="${subjectEntries.length}">${group.name}</td>
-                            <td class="status-cell" rowspan="${subjectEntries.length}">${employmentStatus}</td>
+                            <td class="teacher-name-cell" rowspan="${subjectGroups.length}">${group.name}</td>
+                            <td class="status-cell" rowspan="${subjectGroups.length}">${employmentStatus}</td>
+                        `;
+                        
+                        actionCell = `
+                            <td class="action-cell" rowspan="${subjectGroups.length}" style="vertical-align: middle; background: #f1f5f9;">
+                                <div class="action-btn-group flex justify-center !gap-3">
+                                    ${getActionIcons(group.id, group.name, '', null, employmentStatus, '', '')}
+                                </div>
+                            </td>
                         `;
                     }
-                    const innerBorder = idx < subjectEntries.length - 1 ? 'border-bottom: 1px solid #e2e8f0;' : 'border-bottom: none;';
 
-                    const actionCell = `
-                        <td class="action-cell" style="vertical-align: middle; ${innerBorder}">
-                            <div class="action-btn-group flex justify-center !gap-3">
-                                ${getActionIcons(entry.id, group.name, subjCode, null, employmentStatus, subjName, sectionText)}
-                            </div>
-                        </td>
-                    `;
-
+                    const innerBorder = idx < subjectGroups.length - 1 ? 'border-bottom: 1px solid #e2e8f0;' : 'border-bottom: none;';
+                    
+                    const safeSubjName = (subGroup.name && subGroup.name !== 'null') ? subGroup.name : '';
+                    
                     const subjContent = `
                         <div style="padding: 1.2rem 1rem;">
-                            <div style="font-weight: 800; color: #1e1b4b; font-size: 1.05rem; letter-spacing: 0.02em;">${subjCode}</div>
-                            <div style="font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 4px;">${subjName}</div>
+                            <div style="font-weight: 800; color: #1e1b4b; font-size: 1.05rem; letter-spacing: 0.02em;">${subGroup.code}</div>
+                            <div style="font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 4px;">${safeSubjName}</div>
                         </div>
                     `;
 
                     const secContent = `
                         <div style="padding: 1.2rem 1rem; text-align: center; font-weight: 600; font-size: 0.95rem; color: #1e1b4b;">
-                            ${sectionText}
+                            ${sectionsList}
                         </div>
                     `;
 
                     tr.innerHTML = `
                         ${prefixCells}
-                        <td class="subject-cell" style="padding: 0; vertical-align: middle; border-right: 1px solid #e2e8f0; ${innerBorder}">${subjContent}</td>
-                        <td class="section-cell" style="padding: 0; vertical-align: middle; border-right: 1px solid #e2e8f0; ${innerBorder}">${secContent}</td>
+                        <td class="subject-cell" style="padding: 0; border-right: 1px solid #e2e8f0; ${innerBorder}">${subjContent}</td>
+                        <td class="section-cell" style="padding: 0; border-right: 1px solid #e2e8f0; ${innerBorder}">${secContent}</td>
                         ${actionCell}
                     `;
                     tbody.appendChild(tr);
                 });
             }
         });
+
+        if (!anyRowsDisplayed) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state-cell">Nothing to display.</td></tr>';
+        }
     } catch (e) {
         console.error("Failed to load teacher table", e);
         tbody.innerHTML = '<tr><td colspan="5" style="color: #ef4444;">Error loading data</td></tr>';
     }
 }
 
-async function renderSchedulesVisualGrid() {
+async function renderSchedulesSummaryGrid() {
     const grid = document.getElementById('comlabGrid');
     if (!grid) return;
 
@@ -1906,16 +2032,14 @@ async function renderSchedulesVisualGrid() {
 }
 
 function handleSchedulePageFilterChange() {
-    renderSchedulesVisualGrid();
+    renderSchedulesSummaryGrid();
 }
 
 async function loadSchedulePageData() {
-    renderSchedulesVisualGrid();
+    renderSchedulesSummaryGrid();
 }
 
-function handleFilterChange() {
-    loadLabGrid();
-}
+
 
 function getActionIcons(facultyId, teacherName, subjectCode, scheduleId, employmentStatus, subjectLabel, sectionsText) {
     const escapedTeacherName = (teacherName || '').replace(/'/g, "\\'");
